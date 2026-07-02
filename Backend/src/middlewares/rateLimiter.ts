@@ -10,4 +10,13 @@ export const apiRateLimiter = rateLimit({
   statusCode: 429,
 });
 
+export const loginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 login/auth attempts per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: errorResponse('Too many login attempts from this IP, please try again after 15 minutes.'),
+  statusCode: 429,
+});
+
 export default apiRateLimiter;

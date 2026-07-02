@@ -20,7 +20,7 @@ export const UserProfileMenu: React.FC = () => {
     {
       label: 'My Profile',
       icon: <User className="h-4 w-4" />,
-      onClick: () => navigate('/settings'),
+      onClick: () => navigate('/profile'),
     },
     {
       label: 'System Settings',

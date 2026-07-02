@@ -10,6 +10,7 @@ import { prisma } from './config/db.js';
 import { redis } from './config/redis.js';
 import { initializeSocket } from './socket/index.js';
 import routes from './routes/index.js';
+import authRoutes from './routes/auth.routes.js';
 import { errorHandler } from './middlewares/error.js';
 import { apiRateLimiter } from './middlewares/rateLimiter.js';
 import { errorResponse } from './utils/response.js';
@@ -47,6 +48,9 @@ app.use('/api', apiRateLimiter);
 
 // Bind main V1 API entry routes
 app.use('/api/v1', routes);
+
+// Bind direct /api/auth routes
+app.use('/api/auth', authRoutes);
 
 // Catch all unregistered route calls
 app.use((req, res) => {
