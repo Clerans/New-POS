@@ -2,23 +2,31 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Settings as SettingsIcon, ChevronLeft, ChevronRight, Store } from 'lucide-react';
 import { useSidebarStore } from '../../store/sidebarStore.js';
+import { useUserStore } from '../../store/userStore.js';
 import { cn } from '../../lib/utils.js';
 
 export const Sidebar: React.FC = () => {
   const { isCollapsed, toggleCollapsed } = useSidebarStore();
+  const { hasPermission } = useUserStore();
 
   const navigationItems = [
     {
       name: 'Dashboard',
       to: '/dashboard',
       icon: <LayoutDashboard className="h-5 w-5" />,
+      permission: 'Dashboard.View',
     },
     {
       name: 'Settings',
       to: '/settings',
       icon: <SettingsIcon className="h-5 w-5" />,
+      permission: 'Settings.Manage',
     },
   ];
+
+  const visibleItems = navigationItems.filter(
+    (item) => !item.permission || hasPermission(item.permission)
+  );
 
   return (
     <aside
@@ -52,7 +60,7 @@ export const Sidebar: React.FC = () => {
 
       {/* Nav Items */}
       <nav className="flex-1 space-y-1.5 px-3 py-4">
-        {navigationItems.map((item) => (
+        {visibleItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

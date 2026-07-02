@@ -10,7 +10,6 @@ export interface UserPayload {
   permissions: string[];
 }
 
-// Extend Request interface to support user payload
 export interface AuthenticatedRequest extends Request {
   user?: UserPayload;
 }
@@ -31,11 +30,35 @@ export const authenticate = (
     (req as any).user = decoded;
     next();
   } catch (error) {
-    throw new UnauthorizedError('Invalid or expired authentication token');
+    throw new UnauthorizedError('Invalid or expired access token');
   }
 };
 
-export const authorize = (requiredPermissions: string[]) => {
+/**
+ * Enforce that the user has at least one of the specified roles
+ */
+export const requireRole = (allowedRoles: string | string[]) => {
+  const rolesArray = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const user = (req as any).user as UserPayload | undefined;
+    if (!user) {
+      throw new UnauthorizedError('User is not authenticated');
+    }
+
+    const hasRole = user.roles.some((role) => rolesArray.includes(role));
+    if (!hasRole) {
+      throw new ForbiddenError('You do not have the required role to access this resource');
+    }
+
+    next();
+  };
+};
+
+/**
+ * Enforce that the user has the required permission
+ */
+export const requirePermission = (requiredPermission: string) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     const user = (req as any).user as UserPayload | undefined;
     if (!user) {
@@ -44,16 +67,16 @@ export const authorize = (requiredPermissions: string[]) => {
 
     const { roles, permissions } = user;
 
-    // Admins bypass normal permissions checks
-    if (roles.includes('Admin') || roles.includes('admin')) {
+    // Super Admin, Admin, and Owner bypass all permissions checks
+    const hasBypassRole = roles.some((r) =>
+      ['SUPER_ADMIN', 'ADMIN', 'OWNER'].includes(r.toUpperCase())
+    );
+
+    if (hasBypassRole || permissions.includes('*') || permissions.includes(requiredPermission)) {
       return next();
     }
 
-    const hasAll = requiredPermissions.every((p) => permissions.includes(p));
-    if (!hasAll) {
-      throw new ForbiddenError('You do not have the required permissions to perform this action');
-    }
-
-    next();
+    throw new ForbiddenError(`You do not have the required permission: '${requiredPermission}'`);
   };
 };
+export default authenticate;

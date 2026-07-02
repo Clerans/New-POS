@@ -8,27 +8,56 @@ generator client {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
-  passwordHash String
-  firstName    String?
-  lastName     String?
-  isActive     Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  userRoles    UserRole[]
-  activityLogs ActivityLog[]
-  auditLogs    AuditLog[]
+  id                  String        @id @default(uuid())
+  email               String        @unique
+  username            String?       @unique
+  passwordHash        String        @map("password_hash")
+  firstName           String?       @map("first_name")
+  lastName            String?       @map("last_name")
+  displayName         String?       @map("display_name")
+  phone               String?
+  avatar              String?
+  status              String        @default("ACTIVE") // ACTIVE, INACTIVE, PENDING, SUSPENDED, LOCKED, DELETED
+  failedLoginAttempts Int           @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime?     @map("locked_until")
+  lastLogin           DateTime?     @map("last_login")
+  emailVerified       Boolean       @default(false) @map("email_verified")
+  phoneVerified       Boolean       @default(false) @map("phone_verified")
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+  deletedAt           DateTime?     @map("deleted_at")
+
+  branchId            String?       @map("branch_id")
+  branch              Branch?       @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  userRoles           UserRole[]
+  activityLogs        ActivityLog[]
+  auditLogs           AuditLog[]
+  userSessions        UserSession[]
+  loginHistories      LoginHistory[]
+  passwordResetTokens PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
 
   @@map("users")
+}
+
+model Branch {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  users     User[]
+
+  @@map("branches")
 }
 
 model Role {
   id              String           @id @default(uuid())
   name            String           @unique
   description     String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
   userRoles       UserRole[]
   rolePermissions RolePermission[]
 
@@ -39,8 +68,8 @@ model Permission {
   id              String           @id @default(uuid())
   name            String           @unique
   description     String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
   rolePermissions RolePermission[]
 
   @@map("permissions")
@@ -48,9 +77,9 @@ model Permission {
 
 model UserRole {
   id        String   @id @default(uuid())
-  userId    String
-  roleId    String
-  createdAt DateTime @default(now())
+  userId    String   @map("user_id")
+  roleId    String   @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at")
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
@@ -60,9 +89,9 @@ model UserRole {
 
 model RolePermission {
   id           String     @id @default(uuid())
-  roleId       String
-  permissionId String
-  createdAt    DateTime   @default(now())
+  roleId       String     @map("role_id")
+  permissionId String     @map("permission_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
   role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
   permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
 
@@ -70,26 +99,92 @@ model RolePermission {
   @@map("role_permissions")
 }
 
+model UserSession {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  device    String?
+  browser   String?
+  os        String?
+  expiresAt DateTime @map("expires_at")
+  isValid   Boolean  @default(true) @map("is_valid")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  isUsed    Boolean  @default(false) @map("is_used")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_reset_tokens")
+}
+
+model EmailVerificationToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  isUsed    Boolean  @default(false) @map("is_used")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("email_verification_tokens")
+}
+
+model LoginHistory {
+  id         String   @id @default(uuid())
+  userId     String?  @map("user_id")
+  email      String
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  device     String?
+  browser    String?
+  os         String?
+  status     String   // SUCCESS, FAILED, LOCKED
+  failReason String?  @map("fail_reason")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("login_history")
+}
+
 model Setting {
   id          String   @id @default(uuid())
   key         String   @unique
   value       String
-  group       String   @default("general") // e.g. general, security, system
+  group       String   @default("general")
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("settings")
 }
 
 model ActivityLog {
   id        String   @id @default(uuid())
-  userId    String?
+  userId    String?  @map("user_id")
   action    String
   details   String?
-  ipAddress String?
-  userAgent String?
-  createdAt DateTime @default(now())
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  device    String?
+  browser   String?
+  os        String?
+  createdAt DateTime @default(now()) @map("created_at")
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("activity_logs")
@@ -97,14 +192,18 @@ model ActivityLog {
 
 model AuditLog {
   id         String   @id @default(uuid())
-  userId     String?
-  entityName String   // e.g. User, Setting
-  entityId   String
-  action     String   // e.g. CREATE, UPDATE, DELETE
-  oldValue   String?  // JSON string
-  newValue   String?  // JSON string
-  ipAddress  String?
-  createdAt  DateTime @default(now())
+  userId     String?  @map("user_id")
+  entityName String   @map("entity_name")
+  entityId   String   @map("entity_id")
+  action     String   
+  oldValue   String?  @map("old_value")
+  newValue   String?  @map("new_value")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  device     String?
+  browser    String?
+  os         String?
+  createdAt  DateTime @default(now()) @map("created_at")
   user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("audit_logs")
