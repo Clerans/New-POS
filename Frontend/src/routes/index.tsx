@@ -11,6 +11,7 @@ import ErrorLayout from '../layouts/ErrorLayout.js';
 // Guards
 import PrivateRoute from './PrivateRoute.js';
 import GuestRoute from './GuestRoute.js';
+import PermissionRoute from './PermissionRoute.js';
 
 // Lazy Pages
 const Login = lazy(() => import('../pages/Login.js'));
@@ -18,6 +19,8 @@ const ForgotPassword = lazy(() => import('../pages/ForgotPassword.js'));
 const ResetPassword = lazy(() => import('../pages/ResetPassword.js'));
 const Dashboard = lazy(() => import('../pages/Dashboard.js'));
 const Settings = lazy(() => import('../pages/Settings.js'));
+const Profile = lazy(() => import('../pages/Profile.js'));
+const Forbidden = lazy(() => import('../pages/Forbidden.js'));
 const NotFound = lazy(() => import('../pages/NotFound.js'));
 
 const SuspenseLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -55,7 +58,14 @@ export const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: '/dashboard', element: <SuspenseLayout><Dashboard /></SuspenseLayout> },
-          { path: '/settings', element: <SuspenseLayout><Settings /></SuspenseLayout> },
+          { path: '/profile', element: <SuspenseLayout><Profile /></SuspenseLayout> },
+          { path: '/forbidden', element: <SuspenseLayout><Forbidden /></SuspenseLayout> },
+          {
+            element: <PermissionRoute permission="Settings.Manage" />,
+            children: [
+              { path: '/settings', element: <SuspenseLayout><Settings /></SuspenseLayout> },
+            ],
+          },
         ],
       },
     ],
