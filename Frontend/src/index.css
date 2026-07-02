@@ -1,0 +1,100 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 20 20% 8%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 20 20% 8%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 20% 8%;
+    
+    --primary: 25 18% 62%;          /* Ivory: #B09B8C */
+    --primary-foreground: 20 20% 8%;     /* Dark Coffee: #171514 */
+    
+    --secondary: 19 33% 27%;        /* Coffee Brown: #5C3D2E */
+    --secondary-foreground: 40 42% 94%;
+    
+    --accent: 40 42% 94%;           /* Cream: #F7F3E9 */
+    --accent-foreground: 19 33% 27%;
+    
+    --muted: 40 20% 95%;
+    --muted-foreground: 20 10% 45%;
+    
+    --destructive: 0 84% 60%;       /* Danger Red: #EF4444 */
+    --destructive-foreground: 0 0% 100%;
+    
+    --success: 160 84% 39%;         /* Emerald Green: #10B981 */
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 38 92% 50%;          /* Warm Amber: #F59E0B */
+    --warning-foreground: 0 0% 100%;
+    
+    --border: 20 10% 90%;
+    --input: 20 10% 90%;
+    --ring: 21 100% 59%;
+    --radius: 0.75rem;              /* 12px border radius */
+  }
+
+  .dark {
+    --background: 20 10% 6%;        /* Near Black */
+    --foreground: 0 0% 98%;
+    
+    --card: 20 10% 10%;
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 20 10% 8%;
+    --popover-foreground: 0 0% 98%;
+    
+    --primary: 25 18% 62%;           /* Ivory: #B09B8C */
+    --primary-foreground: 20 10% 6%;     /* Near Black: #12100F */
+    
+    --secondary: 19 25% 18%;
+    --secondary-foreground: 40 42% 94%;
+    
+    --accent: 20 15% 14%;
+    --accent-foreground: 40 42% 94%;
+    
+    --muted: 20 10% 14%;
+    --muted-foreground: 20 10% 65%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    
+    --border: 20 10% 16%;
+    --input: 20 10% 16%;
+    --ring: 21 100% 59%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased transition-colors duration-200;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/30 transition-colors;
+}
