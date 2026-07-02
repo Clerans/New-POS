@@ -1,31 +1,20 @@
 # Dependencies
-node_modules/
+node_modules
 
-# Production/Build outputs
-dist/
-build/
+# Production outputs
+/dist
 
-# Local env files
+# Env variables file
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
-# Logs
-logs/
+# Logs and runtime reports
+/src/logs/*.log
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
 
-# Editor/OS files
-.idea/
-.vscode/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# OS and Editor configurations
 .DS_Store
+.idea
+.vscode
