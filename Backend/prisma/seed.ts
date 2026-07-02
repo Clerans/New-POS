@@ -5,6 +5,13 @@ const prisma = new PrismaClient();
 
 const PERMISSIONS = [
   { name: 'Dashboard.View', description: 'View dashboard metrics' },
+  { name: 'Dashboard.Analytics', description: 'View advanced analytics widgets' },
+  { name: 'Dashboard.Finance', description: 'View financial details and margins' },
+  { name: 'Dashboard.Inventory', description: 'View stock alerts and values' },
+  { name: 'Dashboard.Kitchen', description: 'View kitchen queues' },
+  { name: 'Dashboard.Reports', description: 'View performance reports' },
+  { name: 'Dashboard.Export', description: 'Export POS metrics and lists' },
+  { name: 'Dashboard.Settings', description: 'Configure dashboard configurations' },
   { name: 'Dashboard.Edit', description: 'Modify dashboard widgets and settings' },
   { name: 'Orders.Create', description: 'Create new customer orders' },
   { name: 'Orders.Update', description: 'Update existing customer orders' },
@@ -41,6 +48,47 @@ const ROLES = [
   { name: 'CUSTOMER', description: 'Customer portal access' },
 ];
 
+const CATEGORIES = ['Coffee', 'Tea', 'Bakery', 'Sandwiches', 'Desserts'];
+
+const PRODUCTS = [
+  { name: 'Espresso Single', sku: 'PRD-ESP-01', price: 3.00, cost: 0.50, stock: 150, minStock: 20, category: 'Coffee' },
+  { name: 'Caffe Latte Grande', sku: 'PRD-LAT-02', price: 4.50, cost: 0.80, stock: 100, minStock: 15, category: 'Coffee' },
+  { name: 'Cappuccino Mugs', sku: 'PRD-CAP-03', price: 4.50, cost: 0.80, stock: 120, minStock: 15, category: 'Coffee' },
+  { name: 'Chai Latte Grande', sku: 'PRD-CHL-04', price: 5.00, cost: 0.90, stock: 6, minStock: 12, category: 'Tea' }, // Alert: Low Stock
+  { name: 'Earl Grey Special', sku: 'PRD-EGS-05', price: 3.50, cost: 0.60, stock: 45, minStock: 10, category: 'Tea' },
+  { name: 'Blueberry Muffin', sku: 'PRD-BBM-06', price: 3.50, cost: 1.00, stock: 3, minStock: 10, category: 'Bakery' }, // Alert: Low Stock
+  { name: 'Chocolate Croissant', sku: 'PRD-CCR-07', price: 4.00, cost: 1.20, stock: 0, minStock: 10, category: 'Bakery' }, // Alert: Out of Stock
+  { name: 'Classic Club Sandwich', sku: 'PRD-CCS-08', price: 8.50, cost: 3.00, stock: 25, minStock: 5, category: 'Sandwiches' },
+  { name: 'Avocado Sourdough Toast', sku: 'PRD-AST-09', price: 9.50, cost: 3.50, stock: 30, minStock: 5, category: 'Sandwiches' },
+  { name: 'New York Cheesecake', sku: 'PRD-NYC-10', price: 6.00, cost: 2.00, stock: 18, minStock: 5, category: 'Desserts' },
+  { name: 'Macarons Gift Box', sku: 'PRD-MGB-11', price: 12.00, cost: 4.50, stock: 8, minStock: 5, category: 'Desserts' },
+];
+
+const TABLES = [
+  { name: 'Table 01', capacity: 2, status: 'AVAILABLE' },
+  { name: 'Table 02', capacity: 2, status: 'OCCUPIED' },
+  { name: 'Table 03', capacity: 4, status: 'OCCUPIED' },
+  { name: 'Table 04', capacity: 4, status: 'CLEANING' },
+  { name: 'Table 05', capacity: 6, status: 'RESERVED' },
+  { name: 'Table 06', capacity: 2, status: 'AVAILABLE' },
+  { name: 'Table 07', capacity: 4, status: 'AVAILABLE' },
+];
+
+const CUSTOMERS = [
+  { name: 'Alice Johnson', email: 'alice@example.com', phone: '+15550101', isLoyaltyMember: true, loyaltyPoints: 340 },
+  { name: 'Bob Smith', email: 'bob@example.com', phone: '+15550102', isLoyaltyMember: true, loyaltyPoints: 110 },
+  { name: 'Charlie Brown', email: 'charlie@example.com', phone: '+15550103', isLoyaltyMember: true, loyaltyPoints: 210 },
+  { name: 'Diana Prince', email: 'diana@example.com', phone: '+15550104', isLoyaltyMember: false, loyaltyPoints: 0 },
+];
+
+const EXPENSES = [
+  { amount: 45.00, category: 'Food & Beverage', description: 'Fresh organic milk restock (15L)' },
+  { amount: 35.00, category: 'Supplies', description: 'POS receipt thermal paper rolls' },
+  { amount: 180.00, category: 'Inventory', description: 'Avocado and fresh greens restock' },
+  { amount: 250.00, category: 'Utilities', description: 'Electricity bill Downtown branch' },
+  { amount: 650.00, category: 'Rent', description: 'Monthly kitchen space rent contribution' },
+];
+
 async function main() {
   console.log('🌱 Starting database seeding...');
 
@@ -53,6 +101,15 @@ async function main() {
   await prisma.loginHistory.deleteMany({});
   await prisma.auditLog.deleteMany({});
   await prisma.activityLog.deleteMany({});
+  await prisma.payment.deleteMany({});
+  await prisma.orderItem.deleteMany({});
+  await prisma.order.deleteMany({});
+  await prisma.expense.deleteMany({});
+  await prisma.reservation.deleteMany({});
+  await prisma.restaurantTable.deleteMany({});
+  await prisma.product.deleteMany({});
+  await prisma.category.deleteMany({});
+  await prisma.customer.deleteMany({});
   await prisma.user.deleteMany({});
   await prisma.branch.deleteMany({});
   await prisma.role.deleteMany({});
@@ -62,27 +119,19 @@ async function main() {
 
   // Create Branches
   const mainBranch = await prisma.branch.create({
-    data: {
-      name: 'Main Head Office',
-      code: 'MHO-01',
-    },
+    data: { name: 'Main Head Office', code: 'MHO-01' },
   });
 
   const downtownBranch = await prisma.branch.create({
-    data: {
-      name: 'Downtown CafeChai',
-      code: 'DCC-02',
-    },
+    data: { name: 'Downtown CafeChai', code: 'DCC-02' },
   });
 
-  console.log('🏢 Created branches: Main, Downtown.');
+  console.log('🏢 Created branches.');
 
   // Create Permissions
   const permissionMap: Record<string, any> = {};
   for (const perm of PERMISSIONS) {
-    const createdPerm = await prisma.permission.create({
-      data: perm,
-    });
+    const createdPerm = await prisma.permission.create({ data: perm });
     permissionMap[perm.name] = createdPerm;
   }
   console.log(`🔑 Created ${PERMISSIONS.length} granular permissions.`);
@@ -90,41 +139,23 @@ async function main() {
   // Create Roles
   const roleMap: Record<string, any> = {};
   for (const role of ROLES) {
-    const createdRole = await prisma.role.create({
-      data: role,
-    });
+    const createdRole = await prisma.role.create({ data: role });
     roleMap[role.name] = createdRole;
   }
   console.log(`👥 Created ${ROLES.length} system roles.`);
 
-  // Assign permissions to roles
-  // SUPER_ADMIN, OWNER, ADMIN get all permissions
+  // Link all permissions to admin roles
   const allPermissions = Object.values(permissionMap);
   for (const roleName of ['SUPER_ADMIN', 'OWNER', 'ADMIN']) {
     const roleObj = roleMap[roleName];
     for (const perm of allPermissions) {
       await prisma.rolePermission.create({
-        data: {
-          roleId: roleObj.id,
-          permissionId: perm.id,
-        },
+        data: { roleId: roleObj.id, permissionId: perm.id },
       });
     }
   }
 
-  // MANAGER permissions
-  const managerExclusions = ['Settings.Manage', 'Permissions.Manage', 'AuditLogs.View'];
-  const managerPermissions = allPermissions.filter(p => !managerExclusions.includes(p.name));
-  for (const perm of managerPermissions) {
-    await prisma.rolePermission.create({
-      data: {
-        roleId: roleMap['MANAGER'].id,
-        permissionId: perm.id,
-      },
-    });
-  }
-
-  // CASHIER permissions
+  // Link specific permissions to Cashier
   const cashierPermissions = [
     'Dashboard.View',
     'Orders.Create',
@@ -137,73 +168,13 @@ async function main() {
     const perm = permissionMap[name];
     if (perm) {
       await prisma.rolePermission.create({
-        data: {
-          roleId: roleMap['CASHIER'].id,
-          permissionId: perm.id,
-        },
+        data: { roleId: roleMap['CASHIER'].id, permissionId: perm.id },
       });
     }
   }
+  console.log('🔗 Configured roles and permissions.');
 
-  // WAITER permissions
-  const waiterPermissions = ['Dashboard.View', 'Orders.Create', 'Orders.Update', 'Products.View'];
-  for (const name of waiterPermissions) {
-    const perm = permissionMap[name];
-    if (perm) {
-      await prisma.rolePermission.create({
-        data: {
-          roleId: roleMap['WAITER'].id,
-          permissionId: perm.id,
-        },
-      });
-    }
-  }
-
-  // KITCHEN STAFF permissions
-  const kitchenPermissions = ['Kitchen.View', 'Kitchen.Edit'];
-  for (const name of kitchenPermissions) {
-    const perm = permissionMap[name];
-    if (perm) {
-      await prisma.rolePermission.create({
-        data: {
-          roleId: roleMap['KITCHEN_STAFF'].id,
-          permissionId: perm.id,
-        },
-      });
-    }
-  }
-
-  // INVENTORY STAFF permissions
-  const inventoryPermissions = ['Inventory.View', 'Inventory.Edit', 'Products.View'];
-  for (const name of inventoryPermissions) {
-    const perm = permissionMap[name];
-    if (perm) {
-      await prisma.rolePermission.create({
-        data: {
-          roleId: roleMap['INVENTORY_STAFF'].id,
-          permissionId: perm.id,
-        },
-      });
-    }
-  }
-
-  // CUSTOMER permissions
-  const customerPermissions = ['Dashboard.View'];
-  for (const name of customerPermissions) {
-    const perm = permissionMap[name];
-    if (perm) {
-      await prisma.rolePermission.create({
-        data: {
-          roleId: roleMap['CUSTOMER'].id,
-          permissionId: perm.id,
-        },
-      });
-    }
-  }
-
-  console.log('🔗 Linked permissions to roles.');
-
-  // Create default Admin User
+  // Create default admin user
   const passwordHash = await bcrypt.hash('admin123', 10);
   const adminUser = await prisma.user.create({
     data: {
@@ -221,29 +192,209 @@ async function main() {
     },
   });
 
-  // Assign multiple roles to the admin user
-  await prisma.userRole.create({
+  await prisma.userRole.create({ data: { userId: adminUser.id, roleId: roleMap['SUPER_ADMIN'].id } });
+  await prisma.userRole.create({ data: { userId: adminUser.id, roleId: roleMap['ADMIN'].id } });
+
+  // 1. Seed Categories
+  const categoryMap: Record<string, any> = {};
+  for (const catName of CATEGORIES) {
+    const createdCat = await prisma.category.create({ data: { name: catName } });
+    categoryMap[catName] = createdCat;
+  }
+
+  // 2. Seed Products
+  const productsList: any[] = [];
+  for (const prod of PRODUCTS) {
+    const createdProd = await prisma.product.create({
+      data: {
+        name: prod.name,
+        sku: prod.sku,
+        price: prod.price,
+        cost: prod.cost,
+        stock: prod.stock,
+        minStock: prod.minStock,
+        categoryId: categoryMap[prod.category].id,
+      },
+    });
+    productsList.push(createdProd);
+  }
+
+  // 3. Seed Tables
+  const tablesList: any[] = [];
+  for (const tab of TABLES) {
+    const createdTab = await prisma.restaurantTable.create({
+      data: {
+        name: tab.name,
+        capacity: tab.capacity,
+        status: tab.status,
+        branchId: mainBranch.id,
+      },
+    });
+    tablesList.push(createdTab);
+  }
+
+  // 4. Seed Customers
+  const customersList: any[] = [];
+  for (const cust of CUSTOMERS) {
+    const createdCust = await prisma.customer.create({ data: cust });
+    customersList.push(createdCust);
+  }
+
+  // 5. Seed Reservations
+  const today = new Date();
+  const res1 = await prisma.reservation.create({
     data: {
-      userId: adminUser.id,
-      roleId: roleMap['SUPER_ADMIN'].id,
+      customerName: 'George Clooney',
+      customerPhone: '+15559999',
+      guests: 4,
+      reservationTime: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 19, 0), // 7:00 PM
+      status: 'CONFIRMED',
+      tableId: tablesList[4].id, // Table 5
     },
   });
 
-  await prisma.userRole.create({
+  const res2 = await prisma.reservation.create({
     data: {
-      userId: adminUser.id,
-      roleId: roleMap['ADMIN'].id,
+      customerName: 'Brad Pitt',
+      customerPhone: '+15558888',
+      guests: 2,
+      reservationTime: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12, 30), // 12:30 PM
+      status: 'SEATED',
+      tableId: tablesList[0].id, // Table 1
     },
   });
+
+  // 6. Seed Expenses
+  for (let i = 0; i < 20; i++) {
+    const expTemplate = EXPENSES[i % EXPENSES.length];
+    const expDate = new Date();
+    expDate.setDate(expDate.getDate() - (i % 30)); // spread over 30 days
+    await prisma.expense.create({
+      data: {
+        amount: expTemplate.amount + (Math.random() * 20 - 10), // slight fluctuation
+        category: expTemplate.category,
+        description: expTemplate.description,
+        branchId: i % 2 === 0 ? mainBranch.id : downtownBranch.id,
+        createdAt: expDate,
+      },
+    });
+  }
+
+  // 7. Seed Orders & OrderItems & Payments (Generative Loop: 120 orders over past 30 days)
+  console.log('📦 Seeding generative historical POS orders...');
+  const paymentMethods = ['CASH', 'CARD', 'QR', 'ONLINE'];
+  const orderTypes = ['EAT_IN', 'TAKEAWAY', 'DELIVERY'];
+  const orderStatuses = ['COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED', 'REFUNDED', 'CANCELLED'];
+  const kitchenStatuses = ['SERVED', 'SERVED', 'SERVED', 'SERVED', 'PREPARING', 'READY', 'PENDING'];
+
+  for (let idx = 1; idx <= 120; idx++) {
+    const orderNum = `CC-${1000 + idx}`;
+    const date = new Date();
+    date.setDate(date.getDate() - Math.floor(Math.random() * 30)); // random day in last 30 days
+    
+    // Simulate peak times (Lunch 12-2, Dinner 5-7, Afternoon 3-4)
+    const rand = Math.random();
+    let hour = 8;
+    if (rand < 0.35) {
+      hour = 12 + Math.floor(Math.random() * 3); // 12 PM - 2 PM
+    } else if (rand < 0.70) {
+      hour = 17 + Math.floor(Math.random() * 3); // 5 PM - 7 PM
+    } else {
+      hour = 8 + Math.floor(Math.random() * 9); // general working hours 8 AM - 5 PM
+    }
+    date.setHours(hour, Math.floor(Math.random() * 60), 0);
+
+    const isDowntown = idx % 3 === 0;
+    const branchId = isDowntown ? downtownBranch.id : mainBranch.id;
+
+    // Pick random items
+    const numItems = 1 + Math.floor(Math.random() * 3); // 1-3 items
+    const selectedProds: any[] = [];
+    while (selectedProds.length < numItems) {
+      const p = productsList[Math.floor(Math.random() * productsList.length)];
+      if (!selectedProds.find(sp => sp.id === p.id)) {
+        selectedProds.push(p);
+      }
+    }
+
+    let subtotal = 0;
+    const itemsData = selectedProds.map(prod => {
+      const quantity = 1 + Math.floor(Math.random() * 2); // 1-2 items
+      const price = prod.price;
+      subtotal += price * quantity;
+      return { productId: prod.id, quantity, price };
+    });
+
+    const discount = Math.random() < 0.15 ? subtotal * 0.1 : 0; // 10% discount sometimes
+    const tax = (subtotal - discount) * 0.08; // 8% tax
+    const serviceCharge = Math.random() < 0.5 ? 2.50 : 0.0;
+    const total = subtotal - discount + tax + serviceCharge;
+
+    const status = orderStatuses[idx % orderStatuses.length];
+    const paymentStatus = status === 'COMPLETED' ? 'PAID' : status === 'REFUNDED' ? 'REFUNDED' : 'UNPAID';
+    const paymentMethod = paymentMethods[idx % paymentMethods.length];
+    const orderType = orderTypes[idx % orderTypes.length];
+
+    // Pick random customer or walk-in
+    const customer = Math.random() < 0.4 ? customersList[idx % customersList.length] : null;
+    // Pick table if Eat In
+    const table = orderType === 'EAT_IN' ? tablesList[idx % tablesList.length] : null;
+
+    const prepTime = 5 + Math.floor(Math.random() * 15); // 5-20 mins
+    const servTime = 2 + Math.floor(Math.random() * 8); // 2-10 mins
+
+    const createdOrder = await prisma.order.create({
+      data: {
+        orderNumber: orderNum,
+        orderType,
+        status: status === 'COMPLETED' ? kitchenStatuses[idx % kitchenStatuses.length] : status,
+        paymentStatus,
+        paymentMethod,
+        subtotal,
+        discount,
+        tax,
+        serviceCharge,
+        total,
+        preparationTime: prepTime,
+        servingTime: servTime,
+        userId: adminUser.id,
+        branchId,
+        customerId: customer?.id,
+        tableId: table?.id,
+        createdAt: date,
+        updatedAt: date,
+      },
+    });
+
+    // Create items
+    for (const item of itemsData) {
+      await prisma.orderItem.create({
+        data: {
+          orderId: createdOrder.id,
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+          createdAt: date,
+        },
+      });
+    }
+
+    // Create payment
+    if (paymentStatus === 'PAID') {
+      await prisma.payment.create({
+        data: {
+          orderId: createdOrder.id,
+          amount: total,
+          method: paymentMethod,
+          createdAt: date,
+        },
+      });
+    }
+  }
 
   console.log('✅ Seeding complete successfully!');
   console.log('------------------------------------');
-  console.log('Admin Account Credentials:');
-  console.log('Email:         admin@cafechai.com');
-  console.log('Username:      admin');
-  console.log('Password:      admin123');
-  console.log('Branch:        Main Head Office');
-  console.log('Assigned Roles: SUPER_ADMIN, ADMIN');
+  console.log('System is ready for Dashboard Part 03 analytics.');
   console.log('------------------------------------');
 }
 

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import authRoutes from './auth.routes.js';
+import dashboardRoutes from './dashboard.routes.js';
 import { prisma } from '../config/db.js';
 import { redis } from '../config/redis.js';
 import { successResponse } from '../utils/response.js';
@@ -27,5 +28,6 @@ router.get('/health', async (req, res, next) => {
 
 // Register Subrouters
 router.use('/auth', authRoutes);
+router.use('/dashboard', dashboardRoutes);
 
 export default router;

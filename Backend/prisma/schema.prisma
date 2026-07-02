@@ -37,17 +37,21 @@ model User {
   loginHistories      LoginHistory[]
   passwordResetTokens PasswordResetToken[]
   emailVerificationTokens EmailVerificationToken[]
+  orders              Order[]
 
   @@map("users")
 }
 
 model Branch {
-  id        String   @id @default(uuid())
+  id        String            @id @default(uuid())
   name      String
-  code      String   @unique
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  code      String            @unique
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
   users     User[]
+  orders    Order[]
+  tables    RestaurantTable[]
+  expenses  Expense[]
 
   @@map("branches")
 }
@@ -207,4 +211,145 @@ model AuditLog {
   user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@map("audit_logs")
+}
+
+model Category {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id         String      @id @default(uuid())
+  name       String
+  sku        String      @unique
+  price      Float
+  cost       Float       @default(0)
+  stock      Int         @default(0)
+  minStock   Int         @default(10) @map("min_stock")
+  status     String      @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+  categoryId String?     @map("category_id")
+  category   Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  orderItems OrderItem[]
+
+  @@map("products")
+}
+
+model RestaurantTable {
+  id           String        @id @default(uuid())
+  name         String
+  status       String        @default("AVAILABLE") // AVAILABLE, OCCUPIED, RESERVED, CLEANING
+  capacity     Int
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  branchId     String?       @map("branch_id")
+  branch       Branch?       @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  orders       Order[]
+  reservations Reservation[]
+
+  @@map("restaurant_tables")
+}
+
+model Reservation {
+  id              String           @id @default(uuid())
+  customerName    String           @map("customer_name")
+  customerPhone   String?          @map("customer_phone")
+  guests          Int
+  reservationTime DateTime         @map("reservation_time")
+  status          String           @default("PENDING") // PENDING, CONFIRMED, CANCELLED, SEATED, NOSHOW
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  customerId      String?          @map("customer_id")
+  customer        Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  tableId         String?          @map("table_id")
+  table           RestaurantTable? @relation(fields: [tableId], references: [id], onDelete: SetNull)
+
+  @@map("reservations")
+}
+
+model Customer {
+  id              String        @id @default(uuid())
+  name            String
+  email           String?       @unique
+  phone           String?
+  isLoyaltyMember Boolean       @default(false) @map("is_loyalty_member")
+  loyaltyPoints   Int           @default(0) @map("loyalty_points")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  orders          Order[]
+  reservations    Reservation[]
+
+  @@map("customers")
+}
+
+model Order {
+  id              String           @id @default(uuid())
+  orderNumber     String           @unique @map("order_number")
+  orderType       String           @default("EAT_IN") // EAT_IN, TAKEAWAY, DELIVERY
+  status          String           @default("PENDING") // PENDING, PREPARING, READY, SERVED, COMPLETED, CANCELLED, REFUNDED
+  paymentStatus   String           @default("UNPAID") // UNPAID, PAID, REFUNDED
+  paymentMethod   String?          @map("payment_method") // CASH, CARD, QR, ONLINE
+  subtotal        Float
+  discount        Float            @default(0)
+  tax             Float            @default(0)
+  serviceCharge   Float            @default(0) @map("service_charge")
+  total           Float
+  preparationTime Int?             @map("preparation_time")
+  servingTime     Int?             @map("serving_time")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  userId          String?          @map("user_id")
+  user            User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  branchId        String?          @map("branch_id")
+  branch          Branch?          @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  customerId      String?          @map("customer_id")
+  customer        Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  tableId         String?          @map("table_id")
+  table           RestaurantTable? @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  orderItems      OrderItem[]
+  payments        Payment[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  quantity  Int
+  price     Float
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  orderId   String   @map("order_id")
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  amount      Float
+  category    String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  branchId    String?  @map("branch_id")
+  branch      Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@map("expenses")
+}
+
+model Payment {
+  id        String   @id @default(uuid())
+  amount    Float
+  method    String
+  createdAt DateTime @default(now()) @map("created_at")
+  orderId   String   @map("order_id")
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
 }
