@@ -57,3 +57,100 @@ export const getIO = (): Server => {
   }
   return io;
 };
+
+// Real-time Event Broadcaster Helpers
+export const emitToAll = (event: string, data: any) => {
+  if (io) {
+    io.emit(event, data);
+    logger.info(`📡 Broadcasted event '${event}' to all clients`);
+  }
+};
+
+export const emitToUser = (userId: string, event: string, data: any) => {
+  if (io) {
+    io.to(`user:${userId}`).emit(event, data);
+    logger.info(`📡 Dispatched event '${event}' to User:${userId}`);
+  }
+};
+
+export const emitToRole = (role: string, event: string, data: any) => {
+  if (io) {
+    io.to(`role:${role}`).emit(event, data);
+    logger.info(`📡 Dispatched event '${event}' to Role:${role}`);
+  }
+};
+
+export const emitDashboardUpdate = (data?: any) => {
+  emitToAll('dashboard_update', data || { timestamp: new Date() });
+};
+
+export const emitOrderCreated = (order: any) => {
+  emitToAll('order_created', order);
+  emitDashboardUpdate();
+};
+
+export const emitKitchenStatusChanged = (orderId: string, status: string) => {
+  emitToAll('kitchen_status_changed', { orderId, status });
+  emitDashboardUpdate();
+};
+
+export const emitInventoryAlert = (product: any) => {
+  emitToRole('ADMIN', 'inventory_alert', product);
+  emitToRole('MANAGER', 'inventory_alert', product);
+  emitToRole('INVENTORY_STAFF', 'inventory_alert', product);
+  emitDashboardUpdate();
+};
+
+export const emitTableStatusChanged = (tableId: string, status: string) => {
+  emitToAll('table_status_changed', { tableId, status });
+  emitDashboardUpdate();
+};
+
+export const emitReservationsUpdated = () => {
+  emitToAll('reservations_updated', { timestamp: new Date() });
+  emitDashboardUpdate();
+};
+
+export const emitWaitlistUpdated = () => {
+  emitToAll('waitlist_updated', { timestamp: new Date() });
+  emitDashboardUpdate();
+};
+
+export const emitOrderUpdated = (order: any) => {
+  emitToAll('order_updated', order);
+  emitDashboardUpdate();
+};
+
+export const emitOrderPaid = (order: any) => {
+  emitToAll('order_paid', order);
+  emitDashboardUpdate();
+};
+
+export const emitOrderCancelled = (orderId: string) => {
+  emitToAll('order_cancelled', { orderId });
+  emitDashboardUpdate();
+};
+
+export const emitPaymentCompleted = (payment: any) => {
+  emitToAll('payment_completed', payment);
+  emitDashboardUpdate();
+};
+
+export const emitKitchenSent = (order: any) => {
+  emitToAll('kitchen_sent', order);
+  emitDashboardUpdate();
+};
+
+export const emitReceiptPrinted = (receipt: any) => {
+  emitToAll('receipt_printed', receipt);
+};
+
+export const emitShiftOpened = (shift: any) => {
+  emitToAll('shift_opened', shift);
+  emitDashboardUpdate();
+};
+
+export const emitShiftClosed = (shift: any) => {
+  emitToAll('shift_closed', shift);
+  emitDashboardUpdate();
+};
