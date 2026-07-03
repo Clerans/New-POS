@@ -13,6 +13,28 @@ const PERMISSIONS = [
   { name: 'Dashboard.Export', description: 'Export POS metrics and lists' },
   { name: 'Dashboard.Settings', description: 'Configure dashboard configurations' },
   { name: 'Dashboard.Edit', description: 'Modify dashboard widgets and settings' },
+  
+  // Floor and Table Permissions
+  { name: 'Restaurant.View', description: 'View floor plans and live table statuses' },
+  { name: 'Restaurant.Manage', description: 'Manage floor layouts and operations' },
+  { name: 'Floor.View', description: 'View dining floors' },
+  { name: 'Floor.Create', description: 'Create dining floors' },
+  { name: 'Floor.Edit', description: 'Edit dining floors' },
+  { name: 'Floor.Delete', description: 'Delete dining floors' },
+  { name: 'Table.View', description: 'View tables layout' },
+  { name: 'Table.Create', description: 'Create restaurant tables' },
+  { name: 'Table.Edit', description: 'Modify tables parameters' },
+  { name: 'Table.Delete', description: 'Delete tables' },
+  { name: 'Reservation.View', description: 'View reservations calendar' },
+  { name: 'Reservation.Create', description: 'Create customer reservations' },
+  { name: 'Reservation.Edit', description: 'Edit reservations' },
+  { name: 'Reservation.Delete', description: 'Delete reservations' },
+  { name: 'Waitlist.Manage', description: 'Manage walk-ins waitlist' },
+  { name: 'QR.Generate', description: 'Generate table QR codes' },
+  { name: 'Table.Merge', description: 'Merge restaurant tables' },
+  { name: 'Table.Split', description: 'Split merged tables or bills' },
+  { name: 'Table.Transfer', description: 'Transfer order tables' },
+
   { name: 'Orders.Create', description: 'Create new customer orders' },
   { name: 'Orders.Update', description: 'Update existing customer orders' },
   { name: 'Orders.Delete', description: 'Delete or void customer orders' },
@@ -34,6 +56,23 @@ const PERMISSIONS = [
   { name: 'Users.Manage', description: 'Manage system users and statuses' },
   { name: 'Permissions.Manage', description: 'Manage roles and permission matrix' },
   { name: 'AuditLogs.View', description: 'View security audit and activity logs' },
+
+  // POS Enterprise System Permissions
+  { name: 'POS.View', description: 'View POS cashier interface' },
+  { name: 'POS.Create', description: 'Create POS orders' },
+  { name: 'POS.Edit', description: 'Edit POS orders' },
+  { name: 'POS.Delete', description: 'Delete or void POS orders' },
+  { name: 'POS.Discount', description: 'Apply manual or percentage discounts' },
+  { name: 'POS.PriceOverride', description: 'Override unit price of cart items' },
+  { name: 'POS.Refund', description: 'Perform customer order refunds' },
+  { name: 'POS.SplitBill', description: 'Split order bill payments' },
+  { name: 'POS.MergeBill', description: 'Merge separate table orders' },
+  { name: 'POS.Payment', description: 'Process cashier card/cash transactions' },
+  { name: 'POS.CashDrawer', description: 'Manage cash drawer transactions' },
+  { name: 'POS.CloseShift', description: 'Close cashier shift summaries' },
+  { name: 'POS.PrintReceipt', description: 'Print POS invoice thermal receipts' },
+  { name: 'POS.ReprintReceipt', description: 'Reprint POS invoices' },
+  { name: 'POS.VoidOrder', description: 'Void active cart orders' },
 ];
 
 const ROLES = [
@@ -54,24 +93,35 @@ const PRODUCTS = [
   { name: 'Espresso Single', sku: 'PRD-ESP-01', price: 3.00, cost: 0.50, stock: 150, minStock: 20, category: 'Coffee' },
   { name: 'Caffe Latte Grande', sku: 'PRD-LAT-02', price: 4.50, cost: 0.80, stock: 100, minStock: 15, category: 'Coffee' },
   { name: 'Cappuccino Mugs', sku: 'PRD-CAP-03', price: 4.50, cost: 0.80, stock: 120, minStock: 15, category: 'Coffee' },
-  { name: 'Chai Latte Grande', sku: 'PRD-CHL-04', price: 5.00, cost: 0.90, stock: 6, minStock: 12, category: 'Tea' }, // Alert: Low Stock
+  { name: 'Chai Latte Grande', sku: 'PRD-CHL-04', price: 5.00, cost: 0.90, stock: 6, minStock: 12, category: 'Tea' },
   { name: 'Earl Grey Special', sku: 'PRD-EGS-05', price: 3.50, cost: 0.60, stock: 45, minStock: 10, category: 'Tea' },
-  { name: 'Blueberry Muffin', sku: 'PRD-BBM-06', price: 3.50, cost: 1.00, stock: 3, minStock: 10, category: 'Bakery' }, // Alert: Low Stock
-  { name: 'Chocolate Croissant', sku: 'PRD-CCR-07', price: 4.00, cost: 1.20, stock: 0, minStock: 10, category: 'Bakery' }, // Alert: Out of Stock
+  { name: 'Blueberry Muffin', sku: 'PRD-BBM-06', price: 3.50, cost: 1.00, stock: 3, minStock: 10, category: 'Bakery' },
+  { name: 'Chocolate Croissant', sku: 'PRD-CCR-07', price: 4.00, cost: 1.20, stock: 0, minStock: 10, category: 'Bakery' },
   { name: 'Classic Club Sandwich', sku: 'PRD-CCS-08', price: 8.50, cost: 3.00, stock: 25, minStock: 5, category: 'Sandwiches' },
   { name: 'Avocado Sourdough Toast', sku: 'PRD-AST-09', price: 9.50, cost: 3.50, stock: 30, minStock: 5, category: 'Sandwiches' },
   { name: 'New York Cheesecake', sku: 'PRD-NYC-10', price: 6.00, cost: 2.00, stock: 18, minStock: 5, category: 'Desserts' },
   { name: 'Macarons Gift Box', sku: 'PRD-MGB-11', price: 12.00, cost: 4.50, stock: 8, minStock: 5, category: 'Desserts' },
 ];
 
+const FLOORS = [
+  { name: 'Ground Floor', description: 'Main dining hall layout', color: '#1a1b26', displayOrder: 1 },
+  { name: 'VIP Lounge', description: 'Premium private cabins', color: '#1f2335', displayOrder: 2 },
+  { name: 'Terrace Bar', description: 'Outdoor rooftop view area', color: '#24283b', displayOrder: 3 },
+];
+
+// Tables with Canvas Coordinates
 const TABLES = [
-  { name: 'Table 01', capacity: 2, status: 'AVAILABLE' },
-  { name: 'Table 02', capacity: 2, status: 'OCCUPIED' },
-  { name: 'Table 03', capacity: 4, status: 'OCCUPIED' },
-  { name: 'Table 04', capacity: 4, status: 'CLEANING' },
-  { name: 'Table 05', capacity: 6, status: 'RESERVED' },
-  { name: 'Table 06', capacity: 2, status: 'AVAILABLE' },
-  { name: 'Table 07', capacity: 4, status: 'AVAILABLE' },
+  { tableNumber: 'T01', capacity: 2, shape: 'SQUARE', x: 100, y: 120, width: 80, height: 80, floor: 'Ground Floor', status: 'AVAILABLE' },
+  { tableNumber: 'T02', capacity: 4, shape: 'RECTANGLE', x: 250, y: 120, width: 120, height: 80, floor: 'Ground Floor', status: 'OCCUPIED' },
+  { tableNumber: 'T03', capacity: 4, shape: 'ROUND', x: 450, y: 120, width: 90, height: 90, floor: 'Ground Floor', status: 'OCCUPIED' },
+  { tableNumber: 'T04', capacity: 6, shape: 'BOOTH', x: 100, y: 280, width: 140, height: 80, floor: 'Ground Floor', status: 'CLEANING' },
+  { tableNumber: 'T05', capacity: 2, shape: 'SQUARE', x: 280, y: 280, width: 80, height: 80, floor: 'Ground Floor', status: 'AVAILABLE' },
+  { tableNumber: 'T06', capacity: 2, shape: 'ROUND', x: 420, y: 280, width: 80, height: 80, floor: 'Ground Floor', status: 'RESERVED' },
+  { tableNumber: 'T07', capacity: 1, shape: 'BAR_STOOL', x: 580, y: 120, width: 50, height: 50, floor: 'Ground Floor', status: 'AVAILABLE' },
+  { tableNumber: 'T08', capacity: 1, shape: 'BAR_STOOL', x: 580, y: 200, width: 50, height: 50, floor: 'Ground Floor', status: 'AVAILABLE' },
+  // VIP Floor Tables
+  { tableNumber: 'V01', capacity: 8, shape: 'BOOTH', x: 120, y: 150, width: 160, height: 90, floor: 'VIP Lounge', status: 'AVAILABLE' },
+  { tableNumber: 'V02', capacity: 6, shape: 'OVAL', x: 380, y: 150, width: 130, height: 90, floor: 'VIP Lounge', status: 'AVAILABLE' },
 ];
 
 const CUSTOMERS = [
@@ -89,10 +139,44 @@ const EXPENSES = [
   { amount: 650.00, category: 'Rent', description: 'Monthly kitchen space rent contribution' },
 ];
 
+const WAITLIST = [
+  { queueNumber: 1, customerName: 'Frank Sinatra', customerPhone: '+15550999', guests: 2, priority: 'NORMAL', status: 'WAITING', estimatedWait: 15 },
+  { queueNumber: 2, customerName: 'Dean Martin', customerPhone: '+15550888', guests: 4, priority: 'HIGH', status: 'WAITING', estimatedWait: 20 },
+  { queueNumber: 3, customerName: 'Sammy Davis Jr', customerPhone: '+15550777', guests: 3, priority: 'VIP', status: 'WAITING', estimatedWait: 5 },
+];
+
 async function main() {
   console.log('🌱 Starting database seeding...');
 
   // Clean existing tables in correct order
+  await prisma.couponRedemption.deleteMany({});
+  await prisma.discountRule.deleteMany({});
+  await prisma.taxRule.deleteMany({});
+  await prisma.invoiceSequence.deleteMany({});
+  await prisma.customerOrderHistory.deleteMany({});
+  await prisma.orderNote.deleteMany({});
+  await prisma.orderStatusHistory.deleteMany({});
+  await prisma.shiftTransaction.deleteMany({});
+  await prisma.cashShift.deleteMany({});
+  await prisma.cashDrawer.deleteMany({});
+  await prisma.receipt.deleteMany({});
+  await prisma.refundItem.deleteMany({});
+  await prisma.refund.deleteMany({});
+  await prisma.heldOrderItem.deleteMany({});
+  await prisma.heldOrder.deleteMany({});
+  await prisma.paymentTransaction.deleteMany({});
+  await prisma.orderDiscount.deleteMany({});
+  await prisma.orderItemModifier.deleteMany({});
+  await prisma.tablePosition.deleteMany({});
+  await prisma.tableSessionLog.deleteMany({});
+  await prisma.tableSession.deleteMany({});
+  await prisma.tableMergeItem.deleteMany({});
+  await prisma.tableMerge.deleteMany({});
+  await prisma.tableQrCode.deleteMany({});
+  await prisma.tableStatusHistory.deleteMany({});
+  await prisma.reservationLog.deleteMany({});
+  await prisma.reservation.deleteMany({});
+  await prisma.waitlist.deleteMany({});
   await prisma.userRole.deleteMany({});
   await prisma.rolePermission.deleteMany({});
   await prisma.userSession.deleteMany({});
@@ -105,8 +189,8 @@ async function main() {
   await prisma.orderItem.deleteMany({});
   await prisma.order.deleteMany({});
   await prisma.expense.deleteMany({});
-  await prisma.reservation.deleteMany({});
   await prisma.restaurantTable.deleteMany({});
+  await prisma.floor.deleteMany({});
   await prisma.product.deleteMany({});
   await prisma.category.deleteMany({});
   await prisma.customer.deleteMany({});
@@ -128,6 +212,22 @@ async function main() {
 
   console.log('🏢 Created branches.');
 
+  // Create Floors
+  const floorMap: Record<string, any> = {};
+  for (const fl of FLOORS) {
+    const createdFloor = await prisma.floor.create({
+      data: {
+        name: fl.name,
+        description: fl.description,
+        color: fl.color,
+        displayOrder: fl.displayOrder,
+        branchId: mainBranch.id,
+      },
+    });
+    floorMap[fl.name] = createdFloor;
+  }
+  console.log(`🗺️ Created ${FLOORS.length} restaurant floors.`);
+
   // Create Permissions
   const permissionMap: Record<string, any> = {};
   for (const perm of PERMISSIONS) {
@@ -146,33 +246,58 @@ async function main() {
 
   // Link all permissions to admin roles
   const allPermissions = Object.values(permissionMap);
-  for (const roleName of ['SUPER_ADMIN', 'OWNER', 'ADMIN']) {
+  const rolePermissionsData: any[] = [];
+  for (const roleName of ['SUPER_ADMIN', 'OWNER', 'ADMIN', 'MANAGER']) {
     const roleObj = roleMap[roleName];
     for (const perm of allPermissions) {
-      await prisma.rolePermission.create({
-        data: { roleId: roleObj.id, permissionId: perm.id },
-      });
+      rolePermissionsData.push({ roleId: roleObj.id, permissionId: perm.id });
     }
   }
+  await prisma.rolePermission.createMany({ data: rolePermissionsData });
 
-  // Link specific permissions to Cashier
-  const cashierPermissions = [
-    'Dashboard.View',
+  // Link specific permissions to Waiter & Staff
+  const waiterPermissions = [
+    'Restaurant.View',
+    'Table.View',
+    'Reservation.View',
+    'Reservation.Create',
+    'Reservation.Edit',
     'Orders.Create',
     'Orders.Update',
-    'Products.View',
-    'Customers.View',
-    'Customers.Edit',
   ];
+  const waiterRolePermissionsData: any[] = [];
+  for (const name of waiterPermissions) {
+    const perm = permissionMap[name];
+    if (perm) {
+      waiterRolePermissionsData.push({ roleId: roleMap['WAITER'].id, permissionId: perm.id });
+    }
+  }
+  await prisma.rolePermission.createMany({ data: waiterRolePermissionsData });
+
+  const cashierPermissions = [
+    'Restaurant.View',
+    'Table.View',
+    'Reservation.View',
+    'Orders.Create',
+    'Orders.Update',
+    'POS.View',
+    'POS.Create',
+    'POS.Edit',
+    'POS.Discount',
+    'POS.Payment',
+    'POS.PrintReceipt',
+    'POS.ReprintReceipt',
+    'POS.CashDrawer',
+  ];
+  const cashierRolePermissionsData: any[] = [];
   for (const name of cashierPermissions) {
     const perm = permissionMap[name];
     if (perm) {
-      await prisma.rolePermission.create({
-        data: { roleId: roleMap['CASHIER'].id, permissionId: perm.id },
-      });
+      cashierRolePermissionsData.push({ roleId: roleMap['CASHIER'].id, permissionId: perm.id });
     }
   }
-  console.log('🔗 Configured roles and permissions.');
+  await prisma.rolePermission.createMany({ data: cashierRolePermissionsData });
+  console.log('🔗 Configured roles and permissions matrix.');
 
   // Create default admin user
   const passwordHash = await bcrypt.hash('admin123', 10);
@@ -195,14 +320,14 @@ async function main() {
   await prisma.userRole.create({ data: { userId: adminUser.id, roleId: roleMap['SUPER_ADMIN'].id } });
   await prisma.userRole.create({ data: { userId: adminUser.id, roleId: roleMap['ADMIN'].id } });
 
-  // 1. Seed Categories
+  // Seed Categories
   const categoryMap: Record<string, any> = {};
   for (const catName of CATEGORIES) {
     const createdCat = await prisma.category.create({ data: { name: catName } });
     categoryMap[catName] = createdCat;
   }
 
-  // 2. Seed Products
+  // Seed Products
   const productsList: any[] = [];
   for (const prod of PRODUCTS) {
     const createdProd = await prisma.product.create({
@@ -219,42 +344,71 @@ async function main() {
     productsList.push(createdProd);
   }
 
-  // 3. Seed Tables
+  // Seed Tables & Positions & QRCodes
   const tablesList: any[] = [];
   for (const tab of TABLES) {
     const createdTab = await prisma.restaurantTable.create({
       data: {
-        name: tab.name,
+        tableNumber: tab.tableNumber,
+        displayName: `${tab.floor} - ${tab.tableNumber}`,
         capacity: tab.capacity,
+        shape: tab.shape,
+        width: tab.width,
+        height: tab.height,
+        rotation: 0,
         status: tab.status,
         branchId: mainBranch.id,
+        floorId: floorMap[tab.floor].id,
       },
     });
+
+    // Seed visual placement position
+    await prisma.tablePosition.create({
+      data: {
+        tableId: createdTab.id,
+        x: tab.x,
+        y: tab.y,
+        rotation: 0,
+      },
+    });
+
+    // Seed mock SVG QR payload
+    await prisma.tableQrCode.create({
+      data: {
+        tableId: createdTab.id,
+        qrData: `http://localhost:5173/menu?table=${createdTab.tableNumber}`,
+        svgString: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#fff"/><rect x="15" y="15" width="20" height="20" fill="#000"/><rect x="65" y="15" width="20" height="20" fill="#000"/><rect x="15" y="65" width="20" height="20" fill="#000"/><path d="M 40 20 H 50 V 30 H 40 Z M 45 45 H 55 V 55 H 45 Z M 20 40 H 30 V 50 H 20 Z M 60 60 H 80 V 80 H 60 Z" fill="#000"/></svg>`,
+      },
+    });
+
     tablesList.push(createdTab);
   }
+  console.log(`🍽️ Seeded ${TABLES.length} tables, coordinates positions, and QR codes.`);
 
-  // 4. Seed Customers
+  // Seed Customers
   const customersList: any[] = [];
   for (const cust of CUSTOMERS) {
     const createdCust = await prisma.customer.create({ data: cust });
     customersList.push(createdCust);
   }
 
-  // 5. Seed Reservations
+  // Seed Reservations
   const today = new Date();
   const res1 = await prisma.reservation.create({
     data: {
+      reservationNumber: 'RES-99812',
       customerName: 'George Clooney',
       customerPhone: '+15559999',
       guests: 4,
       reservationTime: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 19, 0), // 7:00 PM
       status: 'CONFIRMED',
-      tableId: tablesList[4].id, // Table 5
+      tableId: tablesList[5].id, // Table 6
     },
   });
 
   const res2 = await prisma.reservation.create({
     data: {
+      reservationNumber: 'RES-99813',
       customerName: 'Brad Pitt',
       customerPhone: '+15558888',
       guests: 2,
@@ -264,14 +418,31 @@ async function main() {
     },
   });
 
-  // 6. Seed Expenses
+  // Seed Waitlist queue
+  for (const wl of WAITLIST) {
+    await prisma.waitlist.create({
+      data: {
+        queueNumber: wl.queueNumber,
+        customerName: wl.customerName,
+        customerPhone: wl.customerPhone,
+        guests: wl.guests,
+        priority: wl.priority,
+        status: wl.status,
+        estimatedWait: wl.estimatedWait,
+        branchId: mainBranch.id,
+      },
+    });
+  }
+  console.log('📋 Seeded walk-ins waitlist queues.');
+
+  // Seed Expenses
   for (let i = 0; i < 20; i++) {
     const expTemplate = EXPENSES[i % EXPENSES.length];
     const expDate = new Date();
-    expDate.setDate(expDate.getDate() - (i % 30)); // spread over 30 days
+    expDate.setDate(expDate.getDate() - (i % 30));
     await prisma.expense.create({
       data: {
-        amount: expTemplate.amount + (Math.random() * 20 - 10), // slight fluctuation
+        amount: expTemplate.amount + (Math.random() * 20 - 10),
         category: expTemplate.category,
         description: expTemplate.description,
         branchId: i % 2 === 0 ? mainBranch.id : downtownBranch.id,
@@ -280,7 +451,7 @@ async function main() {
     });
   }
 
-  // 7. Seed Orders & OrderItems & Payments (Generative Loop: 120 orders over past 30 days)
+  // Seed Orders & Items & Payments (Generative Loop: 120 orders over past 30 days)
   console.log('📦 Seeding generative historical POS orders...');
   const paymentMethods = ['CASH', 'CARD', 'QR', 'ONLINE'];
   const orderTypes = ['EAT_IN', 'TAKEAWAY', 'DELIVERY'];
@@ -290,25 +461,23 @@ async function main() {
   for (let idx = 1; idx <= 120; idx++) {
     const orderNum = `CC-${1000 + idx}`;
     const date = new Date();
-    date.setDate(date.getDate() - Math.floor(Math.random() * 30)); // random day in last 30 days
+    date.setDate(date.getDate() - Math.floor(Math.random() * 30));
     
-    // Simulate peak times (Lunch 12-2, Dinner 5-7, Afternoon 3-4)
     const rand = Math.random();
     let hour = 8;
     if (rand < 0.35) {
-      hour = 12 + Math.floor(Math.random() * 3); // 12 PM - 2 PM
+      hour = 12 + Math.floor(Math.random() * 3);
     } else if (rand < 0.70) {
-      hour = 17 + Math.floor(Math.random() * 3); // 5 PM - 7 PM
+      hour = 17 + Math.floor(Math.random() * 3);
     } else {
-      hour = 8 + Math.floor(Math.random() * 9); // general working hours 8 AM - 5 PM
+      hour = 8 + Math.floor(Math.random() * 9);
     }
     date.setHours(hour, Math.floor(Math.random() * 60), 0);
 
     const isDowntown = idx % 3 === 0;
     const branchId = isDowntown ? downtownBranch.id : mainBranch.id;
 
-    // Pick random items
-    const numItems = 1 + Math.floor(Math.random() * 3); // 1-3 items
+    const numItems = 1 + Math.floor(Math.random() * 3);
     const selectedProds: any[] = [];
     while (selectedProds.length < numItems) {
       const p = productsList[Math.floor(Math.random() * productsList.length)];
@@ -319,14 +488,14 @@ async function main() {
 
     let subtotal = 0;
     const itemsData = selectedProds.map(prod => {
-      const quantity = 1 + Math.floor(Math.random() * 2); // 1-2 items
+      const quantity = 1 + Math.floor(Math.random() * 2);
       const price = prod.price;
       subtotal += price * quantity;
       return { productId: prod.id, quantity, price };
     });
 
-    const discount = Math.random() < 0.15 ? subtotal * 0.1 : 0; // 10% discount sometimes
-    const tax = (subtotal - discount) * 0.08; // 8% tax
+    const discount = Math.random() < 0.15 ? subtotal * 0.1 : 0;
+    const tax = (subtotal - discount) * 0.08;
     const serviceCharge = Math.random() < 0.5 ? 2.50 : 0.0;
     const total = subtotal - discount + tax + serviceCharge;
 
@@ -335,13 +504,11 @@ async function main() {
     const paymentMethod = paymentMethods[idx % paymentMethods.length];
     const orderType = orderTypes[idx % orderTypes.length];
 
-    // Pick random customer or walk-in
     const customer = Math.random() < 0.4 ? customersList[idx % customersList.length] : null;
-    // Pick table if Eat In
     const table = orderType === 'EAT_IN' ? tablesList[idx % tablesList.length] : null;
 
-    const prepTime = 5 + Math.floor(Math.random() * 15); // 5-20 mins
-    const servTime = 2 + Math.floor(Math.random() * 8); // 2-10 mins
+    const prepTime = 5 + Math.floor(Math.random() * 15);
+    const servTime = 2 + Math.floor(Math.random() * 8);
 
     const createdOrder = await prisma.order.create({
       data: {
@@ -366,7 +533,6 @@ async function main() {
       },
     });
 
-    // Create items
     for (const item of itemsData) {
       await prisma.orderItem.create({
         data: {
@@ -379,7 +545,6 @@ async function main() {
       });
     }
 
-    // Create payment
     if (paymentStatus === 'PAID') {
       await prisma.payment.create({
         data: {
@@ -392,9 +557,49 @@ async function main() {
     }
   }
 
+  // Seed Cash Drawers
+  const mainDrawer = await prisma.cashDrawer.create({
+    data: {
+      name: 'Main Cash Register',
+      branchId: mainBranch.id,
+      balance: 250.00,
+      status: 'CLOSED',
+    },
+  });
+  console.log('💵 Seeded default Cash Drawer.');
+
+  // Seed Tax Rules
+  await prisma.taxRule.createMany({
+    data: [
+      { name: 'VAT Standard (10%)', rate: 10.0, type: 'PERCENTAGE', isInclusive: false },
+      { name: 'VAT Inclusive (8%)', rate: 8.0, type: 'PERCENTAGE', isInclusive: true },
+      { name: 'Service Tax (5%)', rate: 5.0, type: 'PERCENTAGE', isInclusive: false },
+    ],
+  });
+  console.log('📊 Seeded default Tax Rules.');
+
+  // Seed Discount Rules (Coupons)
+  await prisma.discountRule.createMany({
+    data: [
+      { name: 'Welcome Voucher (10%)', type: 'PERCENTAGE', value: 10.0, code: 'WELCOME10', minSpend: 15.0 },
+      { name: 'Happy Hour $5 Off', type: 'FIXED', value: 5.0, code: 'HAPPY5', minSpend: 20.0 },
+      { name: 'Employee Discount (15%)', type: 'PERCENTAGE', value: 15.0, code: 'STAFF15' },
+    ],
+  });
+  console.log('🏷️ Seeded default Coupons / Discount Rules.');
+
+  // Seed Invoice Sequence
+  await prisma.invoiceSequence.create({
+    data: {
+      prefix: 'CC-2026-',
+      nextValue: 1200,
+    },
+  });
+  console.log('🔢 Seeded Invoice Sequence.');
+
   console.log('✅ Seeding complete successfully!');
   console.log('------------------------------------');
-  console.log('System is ready for Dashboard Part 03 analytics.');
+  console.log('System layout tables and queues initialized.');
   console.log('------------------------------------');
 }
 

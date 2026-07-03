@@ -25,7 +25,7 @@ initializeSocket(server);
 app.use(helmet());
 app.use(
   cors({
-    origin: env.CLIENT_URL || '*',
+    origin: [env.CLIENT_URL || 'http://localhost:5173', 'http://localhost:5174'],
     credentials: true,
   })
 );
