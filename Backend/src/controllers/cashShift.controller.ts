@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/db.js';
 import * as socketEmitter from '../socket/index.js';
+import { AuthenticatedRequest } from '../middlewares/auth.js';
 
 export class CashShiftController {
-  getDrawers = async (req: Request, res: Response, next: NextFunction) => {
+  getDrawers = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const branchId = req.user?.branchId;
       const drawers = await prisma.cashDrawer.findMany({
@@ -19,7 +20,7 @@ export class CashShiftController {
     }
   };
 
-  getShiftStatus = async (req: Request, res: Response, next: NextFunction) => {
+  getShiftStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const userId = req.user?.id;
       const activeShift = await prisma.cashShift.findFirst({
@@ -42,7 +43,7 @@ export class CashShiftController {
     }
   };
 
-  openShift = async (req: Request, res: Response, next: NextFunction) => {
+  openShift = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { drawerId, openingBalance } = req.body;
       const userId = req.user?.id;

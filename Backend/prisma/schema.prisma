@@ -60,6 +60,7 @@ model Branch {
   floors      Floor[]
   waitlists   Waitlist[]
   cashDrawers CashDrawer[]
+  branchProducts BranchProduct[]
 
   @@map("branches")
 }
@@ -239,28 +240,70 @@ model Floor {
 }
 
 model Category {
-  id       String    @id @default(uuid())
-  name     String    @unique
-  products Product[]
+  id               String               @id @default(uuid())
+  name             String               @unique
+  slug             String?              @unique
+  description      String?
+  image            String?
+  icon             String?
+  displayOrder     Int                  @default(0) @map("display_order")
+  color            String?
+  parentCategoryId String?              @map("parent_category_id")
+  parentCategory   Category?            @relation("SubCategories", fields: [parentCategoryId], references: [id], onDelete: Cascade)
+  subCategories    Category[]           @relation("SubCategories")
+  status           String               @default("ACTIVE") // ACTIVE, INACTIVE, DRAFT
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+  deletedAt        DateTime?            @map("deleted_at")
+  createdById      String?              @map("created_by_id")
+  
+  products         Product[]
+  translations     CategoryTranslation[]
 
   @@map("categories")
 }
 
 model Product {
-  id             String          @id @default(uuid())
-  name           String
-  sku            String          @unique
-  price          Float
-  cost           Float           @default(0)
-  stock          Int             @default(0)
-  minStock       Int             @default(10) @map("min_stock")
-  status         String          @default("ACTIVE") // ACTIVE, INACTIVE
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @updatedAt @map("updated_at")
-  categoryId     String?         @map("category_id")
-  category       Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  orderItems     OrderItem[]
-  heldOrderItems HeldOrderItem[]
+  id               String                 @id @default(uuid())
+  name             String
+  displayName      String?                @map("display_name")
+  sku              String                 @unique
+  barcode          String?                @unique
+  internalCode     String?                @map("internal_code")
+  shortDescription String?                @map("short_description")
+  fullDescription  String?                @map("full_description")
+  price            Float
+  cost             Float                  @default(0)
+  stock            Int                    @default(0)
+  minStock         Int                    @default(10) @map("min_stock")
+  brand            String?
+  unit             String                 @default("PCS") // PCS, KG, L, etc.
+  preparationTime  Int                    @default(10) @map("preparation_time")
+  recipeLink       String?                @map("recipe_link")
+  status           String                 @default("ACTIVE") // ACTIVE, INACTIVE, DRAFT, OUT_OF_STOCK, HIDDEN, ARCHIVED, SEASONAL, DISCONTINUED
+  productType      String                 @default("REGULAR") // REGULAR, VARIANT, COMBO, BUNDLE, OPEN_PRICE, SERVICE, GIFT, DIGITAL
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
+  deletedAt        DateTime?              @map("deleted_at")
+  categoryId       String?                @map("category_id")
+  category         Category?              @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  
+  images           ProductImage[]
+  variants         ProductVariant[]
+  tags             ProductTagMap[]
+  modifiers        ProductModifierMap[]
+  comboProducts    ComboProduct[]         @relation("ComboParent")
+  comboItems       ComboItem[]            @relation("ComboItemProduct")
+  branchProducts   BranchProduct[]
+  availabilities   ProductAvailability[]
+  pricings         ProductPricing[]
+  nutrition        ProductNutrition?
+  analytics        ProductAnalytics?
+  favorites        FavoriteProduct[]
+  statusHistory    ProductStatusHistory[]
+  
+  orderItems       OrderItem[]
+  heldOrderItems   HeldOrderItem[]
 
   @@map("products")
 }
@@ -781,4 +824,277 @@ model CouponRedemption {
   createdAt  DateTime     @default(now()) @map("created_at")
 
   @@map("coupon_redemptions")
+}
+
+model CategoryTranslation {
+  id          String   @id @default(uuid())
+  categoryId  String   @map("category_id")
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  language    String   // en, ar, hi, etc.
+  name        String
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([categoryId, language])
+  @@map("category_translations")
+}
+
+model ProductImage {
+  id           String   @id @default(uuid())
+  productId    String   @map("product_id")
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url          String
+  thumbnail    Boolean  @default(false)
+  isGallery    Boolean  @default(true) @map("is_gallery")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("product_images")
+}
+
+model ProductVariant {
+  id              String                 @id @default(uuid())
+  productId       String                 @map("product_id")
+  product         Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  name            String                 // e.g. Small, Large, Hot, Cold
+  sku             String                 @unique
+  barcode         String?                @unique
+  price           Float
+  cost            Float                  @default(0)
+  recipeLink      String?                @map("recipe_link")
+  image           String?
+  stock           Int                    @default(0)
+  minStock        Int                    @default(5) @map("min_stock")
+  preparationTime Int                    @default(10) @map("preparation_time")
+  status          String                 @default("ACTIVE") // ACTIVE, INACTIVE
+  createdAt       DateTime               @default(now()) @map("created_at")
+  updatedAt       DateTime               @updatedAt @map("updated_at")
+  deletedAt       DateTime?              @map("deleted_at")
+  prices          ProductVariantPrice[]
+
+  @@map("product_variants")
+}
+
+model ProductVariantPrice {
+  id            String         @id @default(uuid())
+  variantId     String         @map("variant_id")
+  variant       ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  branchId      String?        @map("branch_id")
+  price         Float
+  cost          Float          @default(0)
+  deliveryPrice Float?         @map("delivery_price")
+  takeawayPrice Float?         @map("takeaway_price")
+  dineInPrice   Float?         @map("dine_in_price")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  @@map("product_variant_prices")
+}
+
+model ProductTag {
+  id        String          @id @default(uuid())
+  name      String          @unique // Vegan, Best Seller, Halal, etc.
+  slug      String?         @unique
+  color     String?
+  createdAt DateTime        @default(now()) @map("created_at")
+  products  ProductTagMap[]
+
+  @@map("product_tags")
+}
+
+model ProductTagMap {
+  id        String     @id @default(uuid())
+  productId String     @map("product_id")
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  tagId     String     @map("tag_id")
+  tag       ProductTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, tagId])
+  @@map("product_tag_maps")
+}
+
+model ModifierGroup {
+  id            String               @id @default(uuid())
+  name          String
+  description   String?
+  minSelection  Int                  @default(0) @map("min_selection")
+  maxSelection  Int                  @default(1) @map("max_selection")
+  isRequired    Boolean              @default(false) @map("is_required")
+  isMultiSelect Boolean              @default(false) @map("is_multi_select")
+  status        String               @default("ACTIVE")
+  displayOrder  Int                  @default(0) @map("display_order")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+  
+  products      ProductModifierMap[]
+  options       ModifierOption[]
+
+  @@map("modifier_groups")
+}
+
+model ProductModifierMap {
+  id              String        @id @default(uuid())
+  productId       String        @map("product_id")
+  product         Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  modifierGroupId String        @map("modifier_group_id")
+  modifierGroup   ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+  displayOrder    Int           @default(0) @map("display_order")
+
+  @@unique([productId, modifierGroupId])
+  @@map("product_modifier_maps")
+}
+
+model ModifierOption {
+  id              String        @id @default(uuid())
+  modifierGroupId String        @map("modifier_group_id")
+  modifierGroup   ModifierGroup @relation(fields: [modifierGroupId], references: [id], onDelete: Cascade)
+  name            String
+  price           Float         @default(0)
+  sku             String?
+  recipeLink      String?       @map("recipe_link")
+  inventoryItemId String?       @map("inventory_item_id")
+  isAvailable     Boolean       @default(true) @map("is_available")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  @@map("modifier_options")
+}
+
+model ComboProduct {
+  id        String      @id @default(uuid())
+  productId String      @map("product_id")
+  product   Product     @relation("ComboParent", fields: [productId], references: [id], onDelete: Cascade)
+  discount  Float       @default(0) // Fixed discount or dynamic formula
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+  items     ComboItem[]
+
+  @@map("combo_products")
+}
+
+model ComboItem {
+  id             String       @id @default(uuid())
+  comboProductId String       @map("combo_product_id")
+  comboProduct   ComboProduct @relation(fields: [comboProductId], references: [id], onDelete: Cascade)
+  productId      String       @map("product_id")
+  product        Product      @relation("ComboItemProduct", fields: [productId], references: [id], onDelete: Cascade)
+  quantity       Int          @default(1)
+  isRequired     Boolean      @default(true) @map("is_required")
+  displayOrder   Int          @default(0) @map("display_order")
+
+  @@map("combo_items")
+}
+
+model BranchProduct {
+  id        String   @id @default(uuid())
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  branchId  String   @map("branch_id")
+  branch    Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  price     Float?
+  stock     Int      @default(0)
+  status    String   @default("ACTIVE") // ACTIVE, INACTIVE, OUT_OF_STOCK
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([productId, branchId])
+  @@map("branch_products")
+}
+
+model ProductAvailability {
+  id        String   @id @default(uuid())
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  dayOfWeek Int      // 0 (Sunday) to 6 (Saturday)
+  startTime String?  @map("start_time") // e.g. "08:00"
+  endTime   String?  @map("end_time")   // e.g. "11:00"
+  branchId  String?  @map("branch_id")  // Branch-specific availability overrides
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("product_availability")
+}
+
+model ProductPricing {
+  id        String    @id @default(uuid())
+  productId String    @map("product_id")
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  priceType String    @map("price_type") // SELLING, COST, WHOLESALE, DELIVERY, TAKEAWAY, DINE_IN, HAPPY_HOUR, MEMBER, STAFF
+  price     Float
+  branchId  String?   @map("branch_id")
+  startDate DateTime? @map("start_date")
+  endDate   DateTime? @map("end_date")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("product_pricing")
+}
+
+model ProductNutrition {
+  id            String   @id @default(uuid())
+  productId     String   @unique @map("product_id")
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  calories      Int?
+  protein       Float?
+  fat           Float?
+  carbohydrates Float?
+  sugar         Float?
+  sodium        Float?
+  caffeine      Float?
+  allergens     String?  // comma-separated list or JSON array of allergens
+  servingSize   String?  @map("serving_size")
+
+  @@map("product_nutrition")
+}
+
+model ProductAnalytics {
+  id              String   @id @default(uuid())
+  productId       String   @unique @map("product_id")
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  totalSales      Int      @default(0) @map("total_sales")
+  revenue         Float    @default(0)
+  profit          Float    @default(0)
+  averageRating   Float    @default(5.0) @map("average_rating")
+  averagePrepTime Float    @default(10) @map("average_prep_time")
+  returnRate      Float    @default(0) @map("return_rate")
+  conversionRate  Float    @default(0) @map("conversion_rate")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("product_analytics")
+}
+
+model FavoriteProduct {
+  id        String   @id @default(uuid())
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([productId, userId])
+  @@map("favorite_products")
+}
+
+model ProductStatusHistory {
+  id        String   @id @default(uuid())
+  productId String   @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  oldStatus String   @map("old_status")
+  newStatus String   @map("new_status")
+  reason    String?
+  changedBy String?  @map("changed_by")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("product_status_history")
+}
+
+model ProductImportLog {
+  id          String   @id @default(uuid())
+  fileName    String   @map("file_name")
+  totalRows   Int      @map("total_rows")
+  successRows Int      @map("success_rows")
+  failedRows  Int      @map("failed_rows")
+  errors      String?  // JSON string listing error lines
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("product_import_logs")
 }

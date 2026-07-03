@@ -8,6 +8,7 @@ export interface UserPayload {
   email: string;
   roles: string[];
   permissions: string[];
+  branchId?: string;
 }
 
 export interface AuthenticatedRequest extends Request {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Settings as SettingsIcon, Store, X, Layers, Calendar, ShoppingCart } from 'lucide-react';
+import { LayoutDashboard, Settings as SettingsIcon, Store, X, Layers, Calendar, ShoppingCart, Utensils } from 'lucide-react';
 import { useSidebarStore } from '../../store/sidebarStore.js';
 import { useUserStore } from '../../store/userStore.js';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,6 +22,12 @@ export const MobileDrawer: React.FC = () => {
       to: '/pos',
       icon: <ShoppingCart className="h-5 w-5" />,
       permission: 'POS.View',
+    },
+    {
+      name: 'Menu Catalog',
+      to: '/menu-management',
+      icon: <Utensils className="h-5 w-5" />,
+      permission: 'Products.View',
     },
     {
       name: 'Floor Plan',
