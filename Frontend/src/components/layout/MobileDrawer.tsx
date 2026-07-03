@@ -1,25 +1,51 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Settings as SettingsIcon, Store, X } from 'lucide-react';
+import { LayoutDashboard, Settings as SettingsIcon, Store, X, Layers, Calendar, ShoppingCart } from 'lucide-react';
 import { useSidebarStore } from '../../store/sidebarStore.js';
+import { useUserStore } from '../../store/userStore.js';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils.js';
 
 export const MobileDrawer: React.FC = () => {
   const { isOpenMobile, setMobile } = useSidebarStore();
+  const { hasPermission } = useUserStore();
 
   const navigationItems = [
     {
       name: 'Dashboard',
       to: '/dashboard',
       icon: <LayoutDashboard className="h-5 w-5" />,
+      permission: 'Dashboard.View',
+    },
+    {
+      name: 'POS Billing',
+      to: '/pos',
+      icon: <ShoppingCart className="h-5 w-5" />,
+      permission: 'POS.View',
+    },
+    {
+      name: 'Floor Plan',
+      to: '/floor-management',
+      icon: <Layers className="h-5 w-5" />,
+      permission: 'Restaurant.View',
+    },
+    {
+      name: 'Reservations',
+      to: '/reservations',
+      icon: <Calendar className="h-5 w-5" />,
+      permission: 'Reservation.View',
     },
     {
       name: 'Settings',
       to: '/settings',
       icon: <SettingsIcon className="h-5 w-5" />,
+      permission: 'Settings.Manage',
     },
   ];
+
+  const visibleItems = navigationItems.filter(
+    (item) => !item.permission || hasPermission(item.permission)
+  );
 
   return (
     <AnimatePresence>
@@ -58,7 +84,7 @@ export const MobileDrawer: React.FC = () => {
 
             {/* Links */}
             <nav className="flex-1 space-y-1.5">
-              {navigationItems.map((item) => (
+              {visibleItems.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
