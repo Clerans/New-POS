@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Settings as SettingsIcon, ChevronLeft, ChevronRight, Store, Layers, Calendar, ShoppingCart, Utensils } from 'lucide-react';
+import { LayoutDashboard, Settings as SettingsIcon, ChevronLeft, ChevronRight, Store, Layers, Calendar, ShoppingCart, Utensils, Package } from 'lucide-react';
 import { useSidebarStore } from '../../store/sidebarStore.js';
 import { useUserStore } from '../../store/userStore.js';
 import { cn } from '../../lib/utils.js';
@@ -27,6 +27,12 @@ export const Sidebar: React.FC = () => {
       to: '/menu-management',
       icon: <Utensils className="h-5 w-5" />,
       permission: 'Products.View',
+    },
+    {
+      name: 'Inventory',
+      to: '/inventory',
+      icon: <Package className="h-5 w-5" />,
+      permission: 'Inventory.View',
     },
     {
       name: 'Floor Plan',

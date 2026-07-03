@@ -9,6 +9,9 @@ import cashShiftRoutes from './cashShift.routes.js';
 import productRoutes from './product.routes.js';
 import categoryRoutes from './category.routes.js';
 import customerRoutes from './customer.routes.js';
+import inventoryRoutes from './inventory.routes.js';
+import recipeRoutes from './recipe.routes.js';
+import supplierRoutes from './supplier.routes.js';
 import { prisma } from '../config/db.js';
 import { redis } from '../config/redis.js';
 import { successResponse } from '../utils/response.js';
@@ -45,5 +48,8 @@ router.use('/cash-shifts', cashShiftRoutes);
 router.use('/products', productRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/customers', customerRoutes);
+router.use('/inventory', inventoryRoutes);
+router.use('/recipes', recipeRoutes);
+router.use('/suppliers', supplierRoutes);
 
 export default router;

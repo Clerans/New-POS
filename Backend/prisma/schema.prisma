@@ -44,6 +44,20 @@ model User {
   refunds             Refund[]
   cashShifts          CashShift[]
 
+  recipes             Recipe[]
+  purchaseOrders      PurchaseOrder[]
+  goodsReceipts       GoodsReceipt[]
+  stockMovements      StockMovement[]
+  stockAdjustments    StockAdjustment[]
+  approvedAdjustments StockAdjustment[] @relation("AdjustmentApprover")
+  stockTransfers      StockTransfer[]
+  approvedTransfers   StockTransfer[] @relation("TransferApprover")
+  receivedTransfers   StockTransfer[] @relation("TransferReceiver")
+  inventoryCounts     InventoryCount[]
+  approvedCounts      InventoryCount[] @relation("CountApprover")
+  wasteRecords        WasteRecord[]
+  approvedWasteRecords WasteRecord[] @relation("WasteApprover")
+
   @@map("users")
 }
 
@@ -61,6 +75,21 @@ model Branch {
   waitlists   Waitlist[]
   cashDrawers CashDrawer[]
   branchProducts BranchProduct[]
+
+  ingredients         Ingredient[]
+  recipes             Recipe[]
+  purchaseOrders      PurchaseOrder[]
+  goodsReceipts       GoodsReceipt[]
+  stockBatches        StockBatch[]
+  stockMovements      StockMovement[]
+  stockAdjustments    StockAdjustment[]
+  stockTransfersFrom  StockTransfer[] @relation("FromBranch")
+  stockTransfersTo    StockTransfer[] @relation("ToBranch")
+  inventoryCounts     InventoryCount[]
+  wasteRecords        WasteRecord[]
+  inventoryAlerts     InventoryAlert[]
+  inventorySetting    InventorySetting?
+  inventoryValuationHistory InventoryValuationHistory[]
 
   @@map("branches")
 }
@@ -304,6 +333,7 @@ model Product {
   
   orderItems       OrderItem[]
   heldOrderItems   HeldOrderItem[]
+  recipes          Recipe[]
 
   @@map("products")
 }
@@ -1097,4 +1127,579 @@ model ProductImportLog {
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@map("product_import_logs")
+}
+
+model IngredientCategory {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  description String?
+  ingredients Ingredient[]
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  @@map("ingredient_categories")
+}
+
+model IngredientUnit {
+  id               String       @id @default(uuid())
+  name             String       @unique
+  abbreviation     String
+  baseUnitId       String?      @map("base_unit_id")
+  conversionFactor Float?       @map("conversion_factor")
+  ingredients      Ingredient[] @relation("Unit")
+  recipeItems      RecipeItem[]
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  @@map("ingredient_units")
+}
+
+model InventoryLocation {
+  id                 String                  @id @default(uuid())
+  name               String                  @unique
+  description        String?
+  ingredients        IngredientLocationMap[]
+  stockTransfersFrom StockTransfer[]         @relation("FromLocation")
+  stockTransfersTo   StockTransfer[]         @relation("ToLocation")
+  createdAt          DateTime                @default(now()) @map("created_at")
+  updatedAt          DateTime                @updatedAt @map("updated_at")
+
+  @@map("inventory_locations")
+}
+
+model Ingredient {
+  id              String                  @id @default(uuid())
+  name            String
+  sku             String                  @unique
+  barcode         String?                 @unique
+  categoryId      String                  @map("category_id")
+  category        IngredientCategory      @relation(fields: [categoryId], references: [id])
+  unitId          String                  @map("unit_id")
+  unit            IngredientUnit          @relation("Unit", fields: [unitId], references: [id])
+  costPrice       Float                   @default(0) @map("cost_price")
+  averageCost     Float                   @default(0) @map("average_cost")
+  reorderLevel    Float                   @default(0) @map("reorder_level")
+  minStock        Float                   @default(0) @map("min_stock")
+  maxStock        Float                   @default(0) @map("max_stock")
+  currentStock    Float                   @default(0) @map("current_stock")
+  reservedStock   Float                   @default(0) @map("reserved_stock")
+  status          String                  @default("AVAILABLE")
+  branchId        String?                 @map("branch_id")
+  branch          Branch?                 @relation(fields: [branchId], references: [id])
+  createdAt       DateTime                @default(now()) @map("created_at")
+  updatedAt       DateTime                @updatedAt @map("updated_at")
+  deletedAt       DateTime?               @map("deleted_at")
+  
+  recipeItems     RecipeItem[]
+  poItems         PurchaseOrderItem[]
+  grnItems        GoodsReceiptItem[]
+  batches         StockBatch[]
+  movements       StockMovement[]
+  wasteItems      WasteItem[]
+  locations       IngredientLocationMap[]
+  priceHistory    IngredientPriceHistory[]
+  priceListItems  SupplierPriceListItem[]
+  adjustmentItems StockAdjustmentItem[]
+  transferItems   StockTransferItem[]
+  countItems      InventoryCountItem[]
+
+  @@map("ingredients")
+}
+
+model IngredientLocationMap {
+  id           String            @id @default(uuid())
+  ingredientId String            @map("ingredient_id")
+  ingredient   Ingredient        @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  locationId   String            @map("location_id")
+  location     InventoryLocation @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([ingredientId, locationId])
+  @@map("ingredient_location_maps")
+}
+
+model Recipe {
+  id              String             @id @default(uuid())
+  productId       String             @map("product_id")
+  product         Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+  recipeVersion   String             @default("1.0") @map("recipe_version")
+  yield           Float              @default(1.0)
+  preparationTime Int                @default(10) @map("preparation_time")
+  instructions    String?
+  cost            Float              @default(0)
+  calories        Int?
+  status          String             @default("ACTIVE")
+  branchId        String?            @map("branch_id")
+  branch          Branch?            @relation(fields: [branchId], references: [id])
+  createdById     String?            @map("created_by_id")
+  createdBy       User?              @relation(fields: [createdById], references: [id])
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+  
+  items           RecipeItem[]
+  steps           RecipeStep[]
+  costHistory     RecipeCostHistory[]
+  versions        RecipeVersion[]
+
+  @@map("recipes")
+}
+
+model RecipeItem {
+  id           String         @id @default(uuid())
+  recipeId     String         @map("recipe_id")
+  recipe       Recipe         @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredientId String         @map("ingredient_id")
+  ingredient   Ingredient     @relation(fields: [ingredientId], references: [id])
+  quantity     Float
+  unitId       String         @map("unit_id")
+  unit         IngredientUnit @relation(fields: [unitId], references: [id])
+  costShare    Float          @default(0) @map("cost_share")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  @@map("recipe_items")
+}
+
+model RecipeVersion {
+  id         String   @id @default(uuid())
+  recipeId   String   @map("recipe_id")
+  recipe     Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  version    String
+  recipeData String   @map("recipe_data")
+  changedBy  String?  @map("changed_by")
+  changeNote String?  @map("change_note")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("recipe_versions")
+}
+
+model RecipeStep {
+  id         String   @id @default(uuid())
+  recipeId   String   @map("recipe_id")
+  recipe     Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  stepNumber Int      @map("step_number")
+  instruction String
+  duration   Int?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("recipe_steps")
+}
+
+model RecipeCostHistory {
+  id        String   @id @default(uuid())
+  recipeId  String   @map("recipe_id")
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  oldCost   Float    @map("old_cost")
+  newCost   Float    @map("new_cost")
+  changedBy String?  @map("changed_by")
+  reason    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("recipe_cost_history")
+}
+
+model Supplier {
+  id                 String                  @id @default(uuid())
+  companyName        String                  @map("company_name")
+  contactPerson      String?                 @map("contact_person")
+  email              String?
+  phone              String?
+  address            String?
+  taxNumber          String?                 @map("tax_number")
+  paymentTerms       String?                 @map("payment_terms")
+  deliveryTime       Int                     @default(3) @map("delivery_time")
+  rating             Float                   @default(5.0)
+  notes              String?
+  status             String                  @default("ACTIVE")
+  outstandingBalance Float                   @default(0) @map("outstanding_balance")
+  createdAt          DateTime                @default(now()) @map("created_at")
+  updatedAt          DateTime                @updatedAt @map("updated_at")
+  deletedAt          DateTime?               @map("deleted_at")
+  
+  contacts           SupplierContact[]
+  purchaseOrders     PurchaseOrder[]
+  payments           SupplierPayment[]
+  priceLists         SupplierPriceList[]
+  batches            StockBatch[]
+  goodsReceipts      GoodsReceipt[]
+
+  @@map("suppliers")
+}
+
+model SupplierContact {
+  id         String   @id @default(uuid())
+  supplierId String   @map("supplier_id")
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  name       String
+  email      String?
+  phone      String?
+  role       String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("supplier_contacts")
+}
+
+model SupplierPayment {
+  id              String   @id @default(uuid())
+  supplierId      String   @map("supplier_id")
+  supplier        Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  amount          Float
+  paymentMethod   String   @map("payment_method")
+  referenceNumber String?  @map("reference_number")
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("supplier_payments")
+}
+
+model SupplierPriceList {
+  id         String                  @id @default(uuid())
+  supplierId String                  @map("supplier_id")
+  supplier   Supplier                @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  name       String
+  startDate  DateTime?               @map("start_date")
+  endDate    DateTime?               @map("end_date")
+  isActive   Boolean                 @default(true) @map("is_active")
+  items      SupplierPriceListItem[]
+  createdAt  DateTime                @default(now()) @map("created_at")
+  updatedAt  DateTime                @updatedAt @map("updated_at")
+
+  @@map("supplier_price_lists")
+}
+
+model SupplierPriceListItem {
+  id           String            @id @default(uuid())
+  priceListId  String            @map("price_list_id")
+  priceList    SupplierPriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  ingredientId String            @map("ingredient_id")
+  ingredient   Ingredient        @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  supplierSKU  String?           @map("supplier_sku")
+  price        Float
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  @@map("supplier_price_list_items")
+}
+
+model PurchaseOrder {
+  id              String              @id @default(uuid())
+  poNumber        String              @unique @map("po_number")
+  supplierId      String              @map("supplier_id")
+  supplier        Supplier            @relation(fields: [supplierId], references: [id])
+  branchId        String?             @map("branch_id")
+  branch          Branch?             @relation(fields: [branchId], references: [id])
+  expectedDate    DateTime?           @map("expected_date")
+  deliveryAddress String?             @map("delivery_address")
+  subtotal        Float
+  tax             Float               @default(0)
+  discount        Float               @default(0)
+  shipping        Float               @default(0)
+  total           Float
+  status          String              @default("DRAFT")
+  notes           String?
+  createdById     String?             @map("created_by_id")
+  createdBy       User?               @relation(fields: [createdById], references: [id])
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+  
+  items           PurchaseOrderItem[]
+  goodsReceipts   GoodsReceipt[]
+
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id              String        @id @default(uuid())
+  purchaseOrderId String        @map("purchase_order_id")
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  ingredientId    String        @map("ingredient_id")
+  ingredient      Ingredient    @relation(fields: [ingredientId], references: [id])
+  quantityOrdered Float         @map("quantity_ordered")
+  quantityReceived Float        @default(0) @map("quantity_received")
+  price           Float
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  @@map("purchase_order_items")
+}
+
+model GoodsReceipt {
+  id              String             @id @default(uuid())
+  grnNumber       String             @unique @map("grn_number")
+  purchaseOrderId String?            @map("purchase_order_id")
+  purchaseOrder   PurchaseOrder?     @relation(fields: [purchaseOrderId], references: [id])
+  supplierId      String             @map("supplier_id")
+  supplier        Supplier           @relation(fields: [supplierId], references: [id])
+  branchId        String?            @map("branch_id")
+  branch          Branch?            @relation(fields: [branchId], references: [id])
+  receivedDate    DateTime           @default(now()) @map("received_date")
+  receivedById    String?            @map("received_by_id")
+  receivedBy      User?              @relation(fields: [receivedById], references: [id])
+  notes           String?
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+  
+  items           GoodsReceiptItem[]
+
+  @@map("goods_receipts")
+}
+
+model GoodsReceiptItem {
+  id               String       @id @default(uuid())
+  goodsReceiptId   String       @map("goods_receipt_id")
+  goodsReceipt     GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  ingredientId     String       @map("ingredient_id")
+  ingredient       Ingredient   @relation(fields: [ingredientId], references: [id])
+  quantityReceived Float        @map("quantity_received")
+  quantityDamaged  Float        @default(0) @map("quantity_damaged")
+  quantityRejected Float        @default(0) @map("quantity_rejected")
+  price            Float
+  batchNumber      String?      @map("batch_number")
+  lotNumber        String?      @map("lot_number")
+  manufactureDate  DateTime?    @map("manufacture_date")
+  expiryDate       DateTime?    @map("expiry_date")
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  @@map("goods_receipt_items")
+}
+
+model StockBatch {
+  id              String      @id @default(uuid())
+  batchNumber     String?     @map("batch_number")
+  lotNumber       String?     @map("lot_number")
+  ingredientId    String      @map("ingredient_id")
+  ingredient      Ingredient  @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  branchId        String?     @map("branch_id")
+  branch          Branch?     @relation(fields: [branchId], references: [id])
+  manufactureDate DateTime?   @map("manufacture_date")
+  expiryDate      DateTime?   @map("expiry_date")
+  quantity        Float
+  initialQuantity Float       @map("initial_quantity")
+  unitCost        Float       @map("unit_cost")
+  receivedDate    DateTime    @default(now()) @map("received_date")
+  supplierId      String?     @map("supplier_id")
+  supplier        Supplier?   @relation(fields: [supplierId], references: [id])
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  @@map("stock_batches")
+}
+
+model StockMovement {
+  id           String     @id @default(uuid())
+  ingredientId String     @map("ingredient_id")
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  branchId     String?    @map("branch_id")
+  branch       Branch?    @relation(fields: [branchId], references: [id])
+  type         String
+  quantity     Float
+  balanceAfter Float      @map("balance_after")
+  batchNumber  String?    @map("batch_number")
+  lotNumber    String?    @map("lot_number")
+  referenceId  String?    @map("reference_id")
+  reason       String?
+  userId       String?    @map("user_id")
+  user         User?      @relation(fields: [userId], references: [id])
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@map("stock_movements")
+}
+
+model StockAdjustment {
+  id               String                @id @default(uuid())
+  adjustmentNumber String                @unique @map("adjustment_number")
+  branchId         String?               @map("branch_id")
+  branch           Branch?               @relation(fields: [branchId], references: [id])
+  type             String
+  status           String                @default("PENDING")
+  notes            String?
+  createdById      String?               @map("created_by_id")
+  createdBy        User?                 @relation(fields: [createdById], references: [id])
+  approvedById     String?               @map("approved_by_id")
+  approvedBy       User?                 @relation("AdjustmentApprover", fields: [approvedById], references: [id])
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+  items            StockAdjustmentItem[]
+
+  @@map("stock_adjustments")
+}
+
+model StockAdjustmentItem {
+  id               String          @id @default(uuid())
+  adjustmentId     String          @map("adjustment_id")
+  adjustment       StockAdjustment @relation(fields: [adjustmentId], references: [id], onDelete: Cascade)
+  ingredientId     String          @map("ingredient_id")
+  ingredient       Ingredient      @relation(fields: [ingredientId], references: [id])
+  systemQuantity   Float           @map("system_quantity")
+  physicalQuantity Float           @map("physical_quantity")
+  variance         Float
+  unitCost         Float           @map("unit_cost")
+  reason           String?         
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  @@map("stock_adjustment_items")
+}
+
+model StockTransfer {
+  id             String              @id @default(uuid())
+  transferNumber String              @unique @map("transfer_number")
+  fromBranchId   String?             @map("from_branch_id")
+  fromBranch     Branch?             @relation("FromBranch", fields: [fromBranchId], references: [id])
+  toBranchId     String?             @map("to_branch_id")
+  toBranch       Branch?             @relation("ToBranch", fields: [toBranchId], references: [id])
+  fromLocationId String?             @map("from_location_id")
+  fromLocation   InventoryLocation?  @relation("FromLocation", fields: [fromLocationId], references: [id])
+  toLocationId   String?             @map("to_location_id")
+  toLocation     InventoryLocation?  @relation("ToLocation", fields: [toLocationId], references: [id])
+  status         String              @default("REQUESTED")
+  notes          String?
+  createdById    String?             @map("created_by_id")
+  createdBy      User?               @relation(fields: [createdById], references: [id])
+  approvedById   String?             @map("approved_by_id")
+  approvedBy     User?               @relation("TransferApprover", fields: [approvedById], references: [id])
+  receivedById   String?             @map("received_by_id")
+  receivedBy     User?               @relation("TransferReceiver", fields: [receivedById], references: [id])
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+  items          StockTransferItem[]
+
+  @@map("stock_transfers")
+}
+
+model StockTransferItem {
+  id                String        @id @default(uuid())
+  transferId        String        @map("transfer_id")
+  transfer          StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  ingredientId      String        @map("ingredient_id")
+  ingredient        Ingredient    @relation(fields: [ingredientId], references: [id])
+  quantityRequested Float         @map("quantity_requested")
+  quantitySent      Float         @default(0) @map("quantity_sent")
+  quantityReceived  Float         @default(0) @map("quantity_received")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  @@map("stock_transfer_items")
+}
+
+model InventoryCount {
+  id            String               @id @default(uuid())
+  countNumber   String               @unique @map("count_number")
+  branchId      String?              @map("branch_id")
+  branch        Branch?              @relation(fields: [branchId], references: [id])
+  type          String
+  status        String               @default("DRAFT")
+  notes         String?
+  createdById   String?              @map("created_by_id")
+  createdBy     User?                @relation(fields: [createdById], references: [id])
+  approvedById  String?              @map("approved_by_id")
+  approvedBy    User?                @relation("CountApprover", fields: [approvedById], references: [id])
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+  items         InventoryCountItem[]
+
+  @@map("inventory_counts")
+}
+
+model InventoryCountItem {
+  id               String         @id @default(uuid())
+  countId          String         @map("count_id")
+  count            InventoryCount @relation(fields: [countId], references: [id], onDelete: Cascade)
+  ingredientId     String         @map("ingredient_id")
+  ingredient       Ingredient     @relation(fields: [ingredientId], references: [id])
+  systemQuantity   Float          @map("system_quantity")
+  physicalQuantity Float          @map("physical_quantity")
+  variance         Float
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  @@map("inventory_count_items")
+}
+
+model WasteRecord {
+  id           String      @id @default(uuid())
+  wasteNumber  String      @unique @map("waste_number")
+  branchId     String?     @map("branch_id")
+  branch       Branch?     @relation(fields: [branchId], references: [id])
+  notes        String?
+  createdById  String?     @map("created_by_id")
+  createdBy    User?       @relation(fields: [createdById], references: [id])
+  approvedById String?     @map("approved_by_id")
+  approvedBy   User?       @relation("WasteApprover", fields: [approvedById], references: [id])
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+  items        WasteItem[]
+
+  @@map("waste_records")
+}
+
+model WasteItem {
+  id            String      @id @default(uuid())
+  wasteRecordId String      @map("waste_record_id")
+  wasteRecord   WasteRecord @relation(fields: [wasteRecordId], references: [id], onDelete: Cascade)
+  ingredientId  String      @map("ingredient_id")
+  ingredient    Ingredient  @relation(fields: [ingredientId], references: [id])
+  quantity      Float
+  reason        String
+  cost          Float
+  imageUrl      String?     @map("image_url")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  @@map("waste_items")
+}
+
+model InventoryAlert {
+  id          String    @id @default(uuid())
+  type        String
+  severity    String
+  message     String
+  referenceId String?   @map("reference_id")
+  isResolved  Boolean   @default(false) @map("is_resolved")
+  resolvedAt  DateTime? @map("resolved_at")
+  branchId    String?   @map("branch_id")
+  branch      Branch?   @relation(fields: [branchId], references: [id])
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("inventory_alerts")
+}
+
+model InventorySetting {
+  id                                  String   @id @default(uuid())
+  branchId                            String?  @unique @map("branch_id")
+  branch                              Branch?  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  valuationMethod                     String   @default("WEIGHTED_AVERAGE") @map("valuation_method")
+  allowNegativeStock                  Boolean  @default(false) @map("allow_negative_stock")
+  requireManagerApprovalForAdjustments Boolean  @default(true) @map("require_manager_approval_for_adjustments")
+  requireManagerApprovalForWaste       Boolean  @default(false) @map("require_manager_approval_for_waste")
+  createdAt                           DateTime @default(now()) @map("created_at")
+  updatedAt                           DateTime @updatedAt @map("updated_at")
+
+  @@map("inventory_settings")
+}
+
+model InventoryValuationHistory {
+  id              String   @id @default(uuid())
+  branchId        String?  @map("branch_id")
+  branch          Branch?  @relation(fields: [branchId], references: [id])
+  valuationDate   DateTime @default(now()) @map("valuation_date")
+  totalValue      Float    @map("total_value")
+  valuationMethod String   @map("valuation_method")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("inventory_valuation_history")
+}
+
+model IngredientPriceHistory {
+  id           String     @id @default(uuid())
+  ingredientId String     @map("ingredient_id")
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  oldPrice     Float      @map("old_price")
+  newPrice     Float      @map("new_price")
+  changedBy    String?    @map("changed_by")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@map("ingredient_price_history")
 }

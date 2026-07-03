@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/db.js';
 import * as socketEmitter from '../socket/index.js';
 import { AuthenticatedRequest } from '../middlewares/auth.js';
+import { inventoryService } from '../services/inventory.service.js';
 
 export class OrderController {
   createOrder = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
@@ -628,6 +629,11 @@ export class OrderController {
           socketEmitter.emitTableStatusChanged(order.tableId, 'CLEANING');
         }
 
+        // Trigger automatic recipe stock consumption
+        if (finalStatus === 'PAID') {
+          await inventoryService.consumeRecipeForOrder(orderId, tx);
+        }
+
         // Provision dynamic thermal receipt payload in DB
         const receiptNumber = `REC-${new Date().getTime()}`;
         const contentString = JSON.stringify({
@@ -699,12 +705,18 @@ export class OrderController {
           },
         });
 
+        const itemsToRestore = [];
         for (const item of items) {
           const orderItem = order.orderItems.find((oi) => oi.id === item.orderItemId);
           if (!orderItem) continue;
 
           const refundAmount = orderItem.price * item.quantity;
           refundTotal += refundAmount;
+
+          itemsToRestore.push({
+            productId: orderItem.productId,
+            quantity: item.quantity,
+          });
 
           await tx.refundItem.create({
             data: {
@@ -721,6 +733,9 @@ export class OrderController {
             data: { stock: { increment: item.quantity } },
           });
         }
+
+        // Restore recipe ingredients stock
+        await inventoryService.restoreRecipeForRefund(orderId, itemsToRestore, tx);
 
         // Update refund total amount
         const finalRefund = await tx.refund.update({

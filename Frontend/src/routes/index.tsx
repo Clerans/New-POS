@@ -26,6 +26,7 @@ const FloorManagement = lazy(() => import('../pages/FloorManagement.js'));
 const Reservations = lazy(() => import('../pages/Reservations.js'));
 const Billing = lazy(() => import('../pages/Billing.js'));
 const MenuManagement = lazy(() => import('../pages/MenuManagement.js'));
+const InventoryManagement = lazy(() => import('../pages/InventoryManagement.js'));
 
 const SuspenseLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <Suspense
@@ -68,6 +69,12 @@ export const router = createBrowserRouter([
             element: <PermissionRoute permission="Products.View" />,
             children: [
               { path: '/menu-management', element: <SuspenseLayout><MenuManagement /></SuspenseLayout> },
+            ],
+          },
+          {
+            element: <PermissionRoute permission="Inventory.View" />,
+            children: [
+              { path: '/inventory', element: <SuspenseLayout><InventoryManagement /></SuspenseLayout> },
             ],
           },
           {

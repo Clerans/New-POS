@@ -45,7 +45,10 @@ const PERMISSIONS = [
   { name: 'Customers.View', description: 'View customer information' },
   { name: 'Customers.Edit', description: 'Manage customer accounts' },
   { name: 'Inventory.View', description: 'View inventory status and logs' },
+  { name: 'Inventory.Create', description: 'Add new ingredients and stock batches' },
   { name: 'Inventory.Edit', description: 'Update inventory stock levels' },
+  { name: 'Inventory.Delete', description: 'Remove ingredient records from system' },
+  { name: 'Inventory.Reports', description: 'View inventory valuation and waste reports' },
   { name: 'Kitchen.View', description: 'View kitchen display screen orders' },
   { name: 'Kitchen.Edit', description: 'Manage order statuses in kitchen' },
   { name: 'Reports.View', description: 'View sales, product, and staff reports' },
@@ -193,6 +196,44 @@ async function main() {
   await prisma.floor.deleteMany({});
 
   // New models cleanup
+  await prisma.recipeCostHistory.deleteMany({});
+  await prisma.recipeVersion.deleteMany({});
+  await prisma.recipeStep.deleteMany({});
+  await prisma.recipeItem.deleteMany({});
+  await prisma.recipe.deleteMany({});
+
+  await prisma.goodsReceiptItem.deleteMany({});
+  await prisma.goodsReceipt.deleteMany({});
+
+  await prisma.purchaseOrderItem.deleteMany({});
+  await prisma.purchaseOrder.deleteMany({});
+
+  await prisma.supplierPriceListItem.deleteMany({});
+  await prisma.supplierPriceList.deleteMany({});
+  await prisma.supplierContact.deleteMany({});
+  await prisma.supplierPayment.deleteMany({});
+  await prisma.stockBatch.deleteMany({});
+  await prisma.supplier.deleteMany({});
+
+  await prisma.stockMovement.deleteMany({});
+  await prisma.stockAdjustmentItem.deleteMany({});
+  await prisma.stockAdjustment.deleteMany({});
+  await prisma.stockTransferItem.deleteMany({});
+  await prisma.stockTransfer.deleteMany({});
+  await prisma.inventoryCountItem.deleteMany({});
+  await prisma.inventoryCount.deleteMany({});
+  await prisma.wasteItem.deleteMany({});
+  await prisma.wasteRecord.deleteMany({});
+  await prisma.inventoryAlert.deleteMany({});
+  await prisma.inventorySetting.deleteMany({});
+  await prisma.inventoryValuationHistory.deleteMany({});
+  await prisma.ingredientPriceHistory.deleteMany({});
+  await prisma.ingredientLocationMap.deleteMany({});
+  await prisma.ingredient.deleteMany({});
+  await prisma.ingredientCategory.deleteMany({});
+  await prisma.ingredientUnit.deleteMany({});
+  await prisma.inventoryLocation.deleteMany({});
+
   await prisma.productImportLog.deleteMany({});
   await prisma.productStatusHistory.deleteMany({});
   await prisma.favoriteProduct.deleteMany({});
@@ -233,6 +274,233 @@ async function main() {
   });
 
   console.log('🏢 Created branches.');
+
+  // 1. Create Units
+  const unitKg = await prisma.ingredientUnit.create({
+    data: { name: 'Kilogram', abbreviation: 'kg' }
+  });
+  const unitG = await prisma.ingredientUnit.create({
+    data: { name: 'Gram', abbreviation: 'g', baseUnitId: unitKg.id, conversionFactor: 0.001 }
+  });
+  const unitL = await prisma.ingredientUnit.create({
+    data: { name: 'Liter', abbreviation: 'L' }
+  });
+  const unitMl = await prisma.ingredientUnit.create({
+    data: { name: 'Milliliter', abbreviation: 'ml', baseUnitId: unitL.id, conversionFactor: 0.001 }
+  });
+  const unitPcs = await prisma.ingredientUnit.create({
+    data: { name: 'Piece', abbreviation: 'pcs' }
+  });
+
+  // 2. Create Categories
+  const catCoffee = await prisma.ingredientCategory.create({
+    data: { name: 'Coffee Beans', description: 'Raw and roasted coffee beans' }
+  });
+  const catDairy = await prisma.ingredientCategory.create({
+    data: { name: 'Dairy', description: 'Milk, butter, cream' }
+  });
+  const catSweeteners = await prisma.ingredientCategory.create({
+    data: { name: 'Sweeteners', description: 'Sugar, syrups, honey' }
+  });
+  const catPackaging = await prisma.ingredientCategory.create({
+    data: { name: 'Packaging', description: 'Cups, lids, straws' }
+  });
+
+  // 3. Create Locations
+  const locKitchen = await prisma.inventoryLocation.create({
+    data: { name: 'Main Kitchen' }
+  });
+  const locStorage = await prisma.inventoryLocation.create({
+    data: { name: 'Dry Storage Room' }
+  });
+
+  // 4. Create Settings
+  await prisma.inventorySetting.create({
+    data: {
+      branchId: mainBranch.id,
+      valuationMethod: 'WEIGHTED_AVERAGE',
+      allowNegativeStock: false,
+    }
+  });
+
+  // 5. Create Suppliers
+  const roasterSupplier = await prisma.supplier.create({
+    data: {
+      companyName: 'Arabica Roasters Co.',
+      contactPerson: 'Sarah Jenkins',
+      email: 'sarah@arabicaroasters.com',
+      phone: '+15552020',
+      address: '77 Coffee Way, Seattle WA',
+      paymentTerms: 'NET_30',
+      deliveryTime: 2,
+    }
+  });
+  await prisma.supplierContact.create({
+    data: {
+      supplierId: roasterSupplier.id,
+      name: 'James Roaster',
+      role: 'Sales Rep',
+      phone: '+15552021',
+    }
+  });
+
+  const dairySupplier = await prisma.supplier.create({
+    data: {
+      companyName: 'Organic Valley Dairy Farms',
+      contactPerson: 'David Miller',
+      email: 'orders@valleyfarms.com',
+      phone: '+15553030',
+      address: '12 Farm Lane, Madison WI',
+      paymentTerms: 'COD',
+      deliveryTime: 1,
+    }
+  });
+
+  // 6. Create Ingredients
+  const ingEspresso = await prisma.ingredient.create({
+    data: {
+      name: 'Signature Blend Coffee Beans',
+      sku: 'ING-ESP-01',
+      categoryId: catCoffee.id,
+      unitId: unitKg.id,
+      costPrice: 20.00,
+      averageCost: 20.00,
+      reorderLevel: 5.0,
+      minStock: 2.0,
+      maxStock: 50.0,
+      currentStock: 35.0,
+      status: 'AVAILABLE',
+      branchId: mainBranch.id,
+    }
+  });
+  await prisma.ingredientLocationMap.create({
+    data: { ingredientId: ingEspresso.id, locationId: locStorage.id }
+  });
+
+  const ingMilk = await prisma.ingredient.create({
+    data: {
+      name: 'Whole Milk 3.2%',
+      sku: 'ING-MLK-02',
+      categoryId: catDairy.id,
+      unitId: unitL.id,
+      costPrice: 1.50,
+      averageCost: 1.50,
+      reorderLevel: 10.0,
+      minStock: 5.0,
+      maxStock: 100.0,
+      currentStock: 60.0,
+      status: 'AVAILABLE',
+      branchId: mainBranch.id,
+    }
+  });
+  await prisma.ingredientLocationMap.create({
+    data: { ingredientId: ingMilk.id, locationId: locKitchen.id }
+  });
+
+  const ingSugar = await prisma.ingredient.create({
+    data: {
+      name: 'White Cane Sugar',
+      sku: 'ING-SGR-03',
+      categoryId: catSweeteners.id,
+      unitId: unitKg.id,
+      costPrice: 1.10,
+      averageCost: 1.10,
+      reorderLevel: 4.0,
+      minStock: 1.0,
+      maxStock: 20.0,
+      currentStock: 12.0,
+      status: 'AVAILABLE',
+      branchId: mainBranch.id,
+    }
+  });
+
+  const ingCup8 = await prisma.ingredient.create({
+    data: {
+      name: '8oz Bio Disposable Cup',
+      sku: 'ING-CUP-08',
+      categoryId: catPackaging.id,
+      unitId: unitPcs.id,
+      costPrice: 0.12,
+      averageCost: 0.12,
+      reorderLevel: 200,
+      minStock: 50,
+      maxStock: 2000,
+      currentStock: 1200,
+      status: 'AVAILABLE',
+      branchId: mainBranch.id,
+    }
+  });
+
+  // 7. Seed Stock Batches (for FIFO/FEFO tests)
+  const expToday = new Date();
+  expToday.setDate(expToday.getDate() + 5); // Expiry in 5 days (Low alert)
+
+  const expFar = new Date();
+  expFar.setDate(expFar.getDate() + 90); // Expiry in 90 days
+
+  await prisma.stockBatch.create({
+    data: {
+      batchNumber: 'BAT-ESP-2026-A',
+      lotNumber: 'LOT-99',
+      ingredientId: ingEspresso.id,
+      branchId: mainBranch.id,
+      quantity: 15.0,
+      initialQuantity: 15.0,
+      unitCost: 19.50,
+      supplierId: roasterSupplier.id,
+      expiryDate: expFar,
+    }
+  });
+
+  await prisma.stockBatch.create({
+    data: {
+      batchNumber: 'BAT-ESP-2026-B',
+      lotNumber: 'LOT-100',
+      ingredientId: ingEspresso.id,
+      branchId: mainBranch.id,
+      quantity: 20.0,
+      initialQuantity: 20.0,
+      unitCost: 20.25,
+      supplierId: roasterSupplier.id,
+      expiryDate: expFar,
+    }
+  });
+
+  await prisma.stockBatch.create({
+    data: {
+      batchNumber: 'BAT-MLK-01',
+      lotNumber: 'LOT-MLK-01',
+      ingredientId: ingMilk.id,
+      branchId: mainBranch.id,
+      quantity: 60.0,
+      initialQuantity: 60.0,
+      unitCost: 1.50,
+      supplierId: dairySupplier.id,
+      expiryDate: expToday, // Expiring soon!
+    }
+  });
+
+  // 8. Create Stock Movements logs
+  await prisma.stockMovement.create({
+    data: {
+      ingredientId: ingEspresso.id,
+      branchId: mainBranch.id,
+      type: 'PURCHASE',
+      quantity: 35.0,
+      balanceAfter: 35.0,
+      reason: 'Initial catalog batch upload',
+    }
+  });
+  await prisma.stockMovement.create({
+    data: {
+      ingredientId: ingMilk.id,
+      branchId: mainBranch.id,
+      type: 'PURCHASE',
+      quantity: 60.0,
+      balanceAfter: 60.0,
+      reason: 'Initial dairy supplier shipment',
+    }
+  });
 
   // Create Floors
   const floorMap: Record<string, any> = {};
@@ -866,6 +1134,172 @@ async function main() {
     data: {
       productId: productMap['Chai Latte Grande'].id,
       userId: adminUser.id,
+    }
+  });
+
+  // 9. Seed Recipes
+  console.log('📜 Seeding recipes for menu items...');
+  const espressoProduct = productMap['Espresso Single'];
+  if (espressoProduct) {
+    const recipeEspresso = await prisma.recipe.create({
+      data: {
+        productId: espressoProduct.id,
+        recipeVersion: '1.0',
+        yield: 1.0,
+        preparationTime: 3,
+        instructions: 'Grind 18g coffee beans, tamp evenly, and extract for 28 seconds.',
+        cost: 0.36,
+        calories: 5,
+        status: 'ACTIVE',
+        branchId: mainBranch.id,
+        createdById: adminUser.id,
+      }
+    });
+
+    await prisma.recipeItem.create({
+      data: {
+        recipeId: recipeEspresso.id,
+        ingredientId: ingEspresso.id,
+        quantity: 18.0,
+        unitId: unitG.id, // Grams
+        costShare: 0.36,
+      }
+    });
+
+    await prisma.recipeStep.createMany({
+      data: [
+        { recipeId: recipeEspresso.id, stepNumber: 1, instruction: 'Grind coffee beans to fine grind' },
+        { recipeId: recipeEspresso.id, stepNumber: 2, instruction: 'Distribute and tamp coffee in portafilter' },
+        { recipeId: recipeEspresso.id, stepNumber: 3, instruction: 'Lock portafilter and extract double shot' },
+      ]
+    });
+  }
+
+  const latteProduct = productMap['Chai Latte Grande'];
+  if (latteProduct) {
+    const recipeLatte = await prisma.recipe.create({
+      data: {
+        productId: latteProduct.id,
+        recipeVersion: '1.0',
+        yield: 1.0,
+        preparationTime: 5,
+        instructions: 'Extract chai concentrate, steam milk to 65C, pour over tea base and serve with disposable packaging.',
+        cost: 0.75,
+        calories: 180,
+        status: 'ACTIVE',
+        branchId: mainBranch.id,
+        createdById: adminUser.id,
+      }
+    });
+
+    await prisma.recipeItem.create({
+      data: {
+        recipeId: recipeLatte.id,
+        ingredientId: ingMilk.id,
+        quantity: 220.0,
+        unitId: unitMl.id, // Milliliters
+        costShare: 0.33,
+      }
+    });
+
+    await prisma.recipeItem.create({
+      data: {
+        recipeId: recipeLatte.id,
+        ingredientId: ingSugar.id,
+        quantity: 10.0,
+        unitId: unitG.id, // Grams
+        costShare: 0.01,
+      }
+    });
+
+    await prisma.recipeItem.create({
+      data: {
+        recipeId: recipeLatte.id,
+        ingredientId: ingCup8.id,
+        quantity: 1.0,
+        unitId: unitPcs.id, // Pieces
+        costShare: 0.12,
+      }
+    });
+  }
+
+  // 10. Seed Purchase Orders & Goods Receipts
+  console.log('📝 Seeding Purchase Orders and Goods Receipts...');
+  const mockPO = await prisma.purchaseOrder.create({
+    data: {
+      poNumber: 'PO-2026-0001',
+      supplierId: roasterSupplier.id,
+      branchId: mainBranch.id,
+      expectedDate: new Date(),
+      deliveryAddress: 'Main Office Coffee Counter',
+      subtotal: 100.0,
+      tax: 8.0,
+      total: 108.0,
+      status: 'COMPLETED',
+      notes: 'Initial restock of signature beans',
+      createdById: adminUser.id,
+    }
+  });
+
+  await prisma.purchaseOrderItem.create({
+    data: {
+      purchaseOrderId: mockPO.id,
+      ingredientId: ingEspresso.id,
+      quantityOrdered: 5.0,
+      quantityReceived: 5.0,
+      price: 20.0,
+    }
+  });
+
+  const mockGRN = await prisma.goodsReceipt.create({
+    data: {
+      grnNumber: 'GRN-2026-0001',
+      purchaseOrderId: mockPO.id,
+      supplierId: roasterSupplier.id,
+      branchId: mainBranch.id,
+      receivedById: adminUser.id,
+      notes: 'Delivered in full, fresh aroma',
+    }
+  });
+
+  await prisma.goodsReceiptItem.create({
+    data: {
+      goodsReceiptId: mockGRN.id,
+      ingredientId: ingEspresso.id,
+      quantityReceived: 5.0,
+      price: 20.0,
+      batchNumber: 'BAT-ESP-2026-A',
+      lotNumber: 'LOT-99',
+    }
+  });
+
+  // 11. Seed Waste Record
+  const mockWaste = await prisma.wasteRecord.create({
+    data: {
+      wasteNumber: 'WST-2026-0001',
+      branchId: mainBranch.id,
+      createdById: adminUser.id,
+      notes: 'Accidental milk spill on floor during bar cleaning',
+    }
+  });
+
+  await prisma.wasteItem.create({
+    data: {
+      wasteRecordId: mockWaste.id,
+      ingredientId: ingMilk.id,
+      quantity: 2.0, // 2 liters spilled
+      reason: 'SPOILAGE',
+      cost: 3.00,
+    }
+  });
+
+  // 12. Seed Low Stock Alert
+  await prisma.inventoryAlert.create({
+    data: {
+      type: 'LOW_STOCK',
+      severity: 'WARNING',
+      message: 'Signature Blend Coffee Beans is approaching reorder levels.',
+      branchId: mainBranch.id,
     }
   });
 
