@@ -154,3 +154,23 @@ export const emitShiftClosed = (shift: any) => {
   emitToAll('shift_closed', shift);
   emitDashboardUpdate();
 };
+
+export const emitProductUpdated = (product: any) => {
+  emitToAll('product_updated', product);
+  emitDashboardUpdate();
+};
+
+export const emitCategoryUpdated = (category: any) => {
+  emitToAll('category_updated', category);
+  emitDashboardUpdate();
+};
+
+export const emitModifierUpdated = (modifier: any) => {
+  emitToAll('modifier_updated', modifier);
+  emitDashboardUpdate();
+};
+
+export const emitPriceChanged = (priceData: any) => {
+  emitToAll('price_changed', priceData);
+  emitDashboardUpdate();
+};
