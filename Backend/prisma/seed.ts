@@ -191,6 +191,28 @@ async function main() {
   await prisma.expense.deleteMany({});
   await prisma.restaurantTable.deleteMany({});
   await prisma.floor.deleteMany({});
+
+  // New models cleanup
+  await prisma.productImportLog.deleteMany({});
+  await prisma.productStatusHistory.deleteMany({});
+  await prisma.favoriteProduct.deleteMany({});
+  await prisma.productAnalytics.deleteMany({});
+  await prisma.productNutrition.deleteMany({});
+  await prisma.productPricing.deleteMany({});
+  await prisma.productAvailability.deleteMany({});
+  await prisma.branchProduct.deleteMany({});
+  await prisma.comboItem.deleteMany({});
+  await prisma.comboProduct.deleteMany({});
+  await prisma.modifierOption.deleteMany({});
+  await prisma.productModifierMap.deleteMany({});
+  await prisma.modifierGroup.deleteMany({});
+  await prisma.productTagMap.deleteMany({});
+  await prisma.productTag.deleteMany({});
+  await prisma.productVariantPrice.deleteMany({});
+  await prisma.productVariant.deleteMany({});
+  await prisma.productImage.deleteMany({});
+  await prisma.categoryTranslation.deleteMany({});
+
   await prisma.product.deleteMany({});
   await prisma.category.deleteMany({});
   await prisma.customer.deleteMany({});
@@ -320,29 +342,532 @@ async function main() {
   await prisma.userRole.create({ data: { userId: adminUser.id, roleId: roleMap['SUPER_ADMIN'].id } });
   await prisma.userRole.create({ data: { userId: adminUser.id, roleId: roleMap['ADMIN'].id } });
 
-  // Seed Categories
+  // Create Category Tree
+  console.log('📂 Seeding category tree...');
+  const parentCategories = [
+    { name: 'Beverages', slug: 'beverages', description: 'Hot and cold refreshments', icon: 'Coffee', displayOrder: 1 },
+    { name: 'Food', slug: 'food', description: 'Freshly prepared dishes', icon: 'Utensils', displayOrder: 2 },
+    { name: 'Desserts', slug: 'desserts', description: 'Sweet treats and cakes', icon: 'Cake', displayOrder: 3 },
+  ];
+
+  const parentMap: Record<string, any> = {};
+  for (const cat of parentCategories) {
+    const parent = await prisma.category.create({
+      data: {
+        name: cat.name,
+        slug: cat.slug,
+        description: cat.description,
+        icon: cat.icon,
+        displayOrder: cat.displayOrder,
+        status: 'ACTIVE',
+      }
+    });
+    parentMap[cat.name] = parent;
+
+    // Seed translations for parents
+    await prisma.categoryTranslation.createMany({
+      data: [
+        { categoryId: parent.id, language: 'en', name: cat.name, description: cat.description },
+        { categoryId: parent.id, language: 'ar', name: cat.name === 'Beverages' ? 'مشروبات' : cat.name === 'Food' ? 'طعام' : 'حلويات', description: '' }
+      ]
+    });
+  }
+
+  const childCategories = [
+    { name: 'Coffee', parent: 'Beverages', slug: 'coffee', description: 'Espresso-based coffee drinks', icon: 'CupSoda', displayOrder: 1 },
+    { name: 'Tea', parent: 'Beverages', slug: 'tea', description: 'Traditional and herbal teas', icon: 'GlassWater', displayOrder: 2 },
+    { name: 'Sandwiches', parent: 'Food', slug: 'sandwiches', description: 'Warm artisanal toasties', icon: 'Salad', displayOrder: 1 },
+    { name: 'Bakery', parent: 'Food', slug: 'bakery', description: 'Oven baked goods', icon: 'Cookie', displayOrder: 2 },
+    { name: 'Cakes', parent: 'Desserts', slug: 'cakes', description: 'Gourmet sliced cakes', icon: 'CakeSlice', displayOrder: 1 },
+  ];
+
   const categoryMap: Record<string, any> = {};
-  for (const catName of CATEGORIES) {
-    const createdCat = await prisma.category.create({ data: { name: catName } });
-    categoryMap[catName] = createdCat;
+  for (const child of childCategories) {
+    const parentCat = parentMap[child.parent];
+    const cat = await prisma.category.create({
+      data: {
+        name: child.name,
+        slug: child.slug,
+        description: child.description,
+        icon: child.icon,
+        displayOrder: child.displayOrder,
+        parentCategoryId: parentCat.id,
+        status: 'ACTIVE',
+      }
+    });
+    categoryMap[child.name] = cat;
+
+    // Translation
+    await prisma.categoryTranslation.createMany({
+      data: [
+        { categoryId: cat.id, language: 'en', name: child.name, description: child.description },
+        { categoryId: cat.id, language: 'ar', name: child.name === 'Coffee' ? 'قهوة' : child.name === 'Tea' ? 'شاي' : child.name === 'Sandwiches' ? 'شطائر' : 'مخبوزات', description: '' }
+      ]
+    });
+  }
+
+  // Create Tags
+  console.log('🏷️ Seeding product tags...');
+  const tagList = [
+    { name: 'Vegan', slug: 'vegan', color: '#10b981' },
+    { name: 'Best Seller', slug: 'best-seller', color: '#ef4444' },
+    { name: 'Gluten Free', slug: 'gluten-free', color: '#f59e0b' },
+    { name: 'Hot Drink', slug: 'hot-drink', color: '#3b82f6' },
+  ];
+  const tagsMap: Record<string, any> = {};
+  for (const tag of tagList) {
+    const createdTag = await prisma.productTag.create({ data: tag });
+    tagsMap[tag.name] = createdTag;
+  }
+
+  // Create Modifier Groups
+  console.log('🥛 Seeding modifier groups...');
+  const milkModifiers = await prisma.modifierGroup.create({
+    data: {
+      name: 'Milk Choices',
+      description: 'Select your preferred milk option',
+      minSelection: 1,
+      maxSelection: 1,
+      isRequired: true,
+      isMultiSelect: false,
+      status: 'ACTIVE',
+      displayOrder: 1,
+    }
+  });
+
+  const milkOptions = [
+    { name: 'Whole Milk', price: 0.00 },
+    { name: 'Oat Milk', price: 0.60 },
+    { name: 'Soy Milk', price: 0.50 },
+    { name: 'Almond Milk', price: 0.60 },
+  ];
+  for (const opt of milkOptions) {
+    await prisma.modifierOption.create({
+      data: {
+        modifierGroupId: milkModifiers.id,
+        name: opt.name,
+        price: opt.price,
+        isAvailable: true,
+      }
+    });
+  }
+
+  const syrupModifiers = await prisma.modifierGroup.create({
+    data: {
+      name: 'Syrup Options',
+      description: 'Add extra sweetness and flavor',
+      minSelection: 0,
+      maxSelection: 3,
+      isRequired: false,
+      isMultiSelect: true,
+      status: 'ACTIVE',
+      displayOrder: 2,
+    }
+  });
+
+  const syrupOptions = [
+    { name: 'Vanilla Syrup', price: 0.50 },
+    { name: 'Caramel Syrup', price: 0.50 },
+    { name: 'Hazelnut Syrup', price: 0.50 },
+  ];
+  for (const opt of syrupOptions) {
+    await prisma.modifierOption.create({
+      data: {
+        modifierGroupId: syrupModifiers.id,
+        name: opt.name,
+        price: opt.price,
+        isAvailable: true,
+      }
+    });
   }
 
   // Seed Products
+  console.log('📦 Seeding menu products, variants, analytics and price schedules...');
+  const PRODUCTS_DATA = [
+    {
+      name: 'Espresso Single',
+      sku: 'PRD-ESP-01',
+      price: 3.00,
+      cost: 0.50,
+      stock: 150,
+      minStock: 20,
+      category: 'Coffee',
+      productType: 'REGULAR',
+      tags: ['Best Seller', 'Hot Drink'],
+      prepTime: 5,
+    },
+    {
+      name: 'Caffe Latte',
+      sku: 'PRD-LAT-BASE',
+      price: 4.50,
+      cost: 0.80,
+      stock: 100,
+      minStock: 15,
+      category: 'Coffee',
+      productType: 'VARIANT',
+      tags: ['Hot Drink'],
+      prepTime: 7,
+      variants: [
+        { name: 'Regular Cup', sku: 'PRD-LAT-REG', price: 4.50, cost: 0.80 },
+        { name: 'Large Mug', sku: 'PRD-LAT-LRG', price: 5.50, cost: 1.00 },
+      ],
+      modifiers: [milkModifiers.id, syrupModifiers.id],
+    },
+    {
+      name: 'Chai Latte Grande',
+      sku: 'PRD-CHL-04',
+      price: 5.00,
+      cost: 0.90,
+      stock: 60,
+      minStock: 12,
+      category: 'Tea',
+      productType: 'REGULAR',
+      tags: ['Best Seller', 'Hot Drink'],
+      prepTime: 6,
+      modifiers: [milkModifiers.id, syrupModifiers.id],
+    },
+    {
+      name: 'Earl Grey Special',
+      sku: 'PRD-EGS-05',
+      price: 3.50,
+      cost: 0.60,
+      stock: 45,
+      minStock: 10,
+      category: 'Tea',
+      productType: 'REGULAR',
+      tags: ['Hot Drink'],
+      prepTime: 4,
+    },
+    {
+      name: 'Blueberry Muffin',
+      sku: 'PRD-BBM-06',
+      price: 3.50,
+      cost: 1.00,
+      stock: 40,
+      minStock: 10,
+      category: 'Bakery',
+      productType: 'REGULAR',
+      tags: ['Vegan'],
+      prepTime: 2,
+    },
+    {
+      name: 'Chocolate Croissant',
+      sku: 'PRD-CCR-07',
+      price: 4.00,
+      cost: 1.20,
+      stock: 35,
+      minStock: 10,
+      category: 'Bakery',
+      productType: 'REGULAR',
+      prepTime: 2,
+    },
+    {
+      name: 'New York Cheesecake',
+      sku: 'PRD-NYC-10',
+      price: 6.00,
+      cost: 2.00,
+      stock: 18,
+      minStock: 5,
+      category: 'Cakes',
+      productType: 'REGULAR',
+      prepTime: 2,
+    },
+  ];
+
   const productsList: any[] = [];
-  for (const prod of PRODUCTS) {
-    const createdProd = await prisma.product.create({
+  const productMap: Record<string, any> = {};
+
+  for (const item of PRODUCTS_DATA) {
+    const product = await prisma.product.create({
       data: {
-        name: prod.name,
-        sku: prod.sku,
-        price: prod.price,
-        cost: prod.cost,
-        stock: prod.stock,
-        minStock: prod.minStock,
-        categoryId: categoryMap[prod.category].id,
-      },
+        name: item.name,
+        sku: item.sku,
+        price: item.price,
+        cost: item.cost,
+        stock: item.stock,
+        minStock: item.minStock,
+        categoryId: categoryMap[item.category].id,
+        productType: item.productType,
+        preparationTime: item.prepTime,
+        status: 'ACTIVE',
+      }
     });
-    productsList.push(createdProd);
+
+    productsList.push(product);
+    productMap[item.name] = product;
+
+    // 1. Create ProductImage
+    await prisma.productImage.create({
+      data: {
+        productId: product.id,
+        url: `https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&q=80&w=200`,
+        thumbnail: true,
+      }
+    });
+
+    // 2. Map Tags
+    if (item.tags) {
+      for (const tagName of item.tags) {
+        const tag = tagsMap[tagName];
+        if (tag) {
+          await prisma.productTagMap.create({
+            data: {
+              productId: product.id,
+              tagId: tag.id,
+            }
+          });
+        }
+      }
+    }
+
+    // 3. Map Modifiers
+    if (item.modifiers) {
+      for (let order = 0; order < item.modifiers.length; order++) {
+        await prisma.productModifierMap.create({
+          data: {
+            productId: product.id,
+            modifierGroupId: item.modifiers[order],
+            displayOrder: order,
+          }
+        });
+      }
+    }
+
+    // 4. Create Variants & Variant Prices
+    if (item.variants) {
+      for (const vr of item.variants) {
+        const variant = await prisma.productVariant.create({
+          data: {
+            productId: product.id,
+            name: vr.name,
+            sku: vr.sku,
+            price: vr.price,
+            cost: vr.cost,
+            stock: 50,
+            status: 'ACTIVE',
+          }
+        });
+
+        // Seed ProductVariantPrice for Downtown and Main branches
+        await prisma.productVariantPrice.create({
+          data: {
+            variantId: variant.id,
+            branchId: mainBranch.id,
+            price: vr.price,
+            cost: vr.cost,
+            dineInPrice: vr.price,
+            takeawayPrice: vr.price - 0.5,
+            deliveryPrice: vr.price + 1.0,
+          }
+        });
+
+        await prisma.productVariantPrice.create({
+          data: {
+            variantId: variant.id,
+            branchId: downtownBranch.id,
+            price: vr.price + 0.5, // slightly more expensive in downtown
+            cost: vr.cost,
+            dineInPrice: vr.price + 0.5,
+            takeawayPrice: vr.price,
+            deliveryPrice: vr.price + 1.5,
+          }
+        });
+      }
+    }
+
+    // 5. Seed Pricing tiers for core product
+    const pricingTiers = [
+      { priceType: 'DINE_IN', price: item.price },
+      { priceType: 'TAKEAWAY', price: item.price - 0.50 },
+      { priceType: 'DELIVERY', price: item.price + 1.00 },
+      { priceType: 'HAPPY_HOUR', price: item.price * 0.80 },
+    ];
+    for (const pr of pricingTiers) {
+      await prisma.productPricing.create({
+        data: {
+          productId: product.id,
+          priceType: pr.priceType,
+          price: pr.price,
+          branchId: mainBranch.id,
+        }
+      });
+    }
+
+    // 6. Branch Product stocking
+    await prisma.branchProduct.create({
+      data: {
+        productId: product.id,
+        branchId: mainBranch.id,
+        price: item.price,
+        stock: item.stock,
+        status: 'ACTIVE',
+      }
+    });
+
+    await prisma.branchProduct.create({
+      data: {
+        productId: product.id,
+        branchId: downtownBranch.id,
+        price: item.price + 0.50,
+        stock: Math.floor(item.stock * 0.8),
+        status: 'ACTIVE',
+      }
+    });
+
+    // 7. ProductAvailability Schedule (7 days a week)
+    for (let day = 0; day <= 6; day++) {
+      await prisma.productAvailability.create({
+        data: {
+          productId: product.id,
+          dayOfWeek: day,
+          startTime: '06:00',
+          endTime: '22:00',
+          branchId: mainBranch.id,
+        }
+      });
+    }
+
+    // 8. ProductNutrition details
+    await prisma.productNutrition.create({
+      data: {
+        productId: product.id,
+        calories: 120 + Math.floor(Math.random() * 250),
+        protein: 2.0 + Math.random() * 8.0,
+        fat: 1.0 + Math.random() * 12.0,
+        carbohydrates: 15.0 + Math.random() * 45.0,
+        allergens: item.category === 'Bakery' || item.category === 'Cakes' ? 'Gluten,Dairy,Eggs' : 'Dairy',
+        servingSize: '1 Cup / 1 Piece',
+      }
+    });
+
+    // 9. ProductAnalytics
+    await prisma.productAnalytics.create({
+      data: {
+        productId: product.id,
+        totalSales: 50 + Math.floor(Math.random() * 500),
+        revenue: 200.0 + Math.floor(Math.random() * 1500),
+        profit: 100.0 + Math.floor(Math.random() * 800),
+        averagePrepTime: item.prepTime,
+      }
+    });
+
+    // 10. Audit History
+    await prisma.productStatusHistory.create({
+      data: {
+        productId: product.id,
+        oldStatus: 'DRAFT',
+        newStatus: 'ACTIVE',
+        reason: 'Initial system product seeding',
+        changedBy: adminUser.displayName || 'Admin User',
+      }
+    });
   }
+
+  // Seed Combo Product
+  console.log('🍔 Seeding combo products...');
+  const comboBaseProduct = await prisma.product.create({
+    data: {
+      name: 'Chai & Croissant Combo',
+      sku: 'PRD-CHAI-CRO-COMBO',
+      price: 7.50,
+      cost: 1.80,
+      stock: 30,
+      minStock: 5,
+      categoryId: categoryMap['Bakery'].id,
+      productType: 'COMBO',
+      preparationTime: 8,
+      status: 'ACTIVE',
+    }
+  });
+
+  const comboParent = await prisma.comboProduct.create({
+    data: {
+      productId: comboBaseProduct.id,
+      discount: 1.50, // combo saves $1.50
+    }
+  });
+
+  // Link items
+  const chaiProd = productMap['Chai Latte Grande'];
+  const croissantProd = productMap['Chocolate Croissant'];
+  if (chaiProd && croissantProd) {
+    await prisma.comboItem.create({
+      data: {
+        comboProductId: comboParent.id,
+        productId: chaiProd.id,
+        quantity: 1,
+        isRequired: true,
+        displayOrder: 1,
+      }
+    });
+
+    await prisma.comboItem.create({
+      data: {
+        comboProductId: comboParent.id,
+        productId: croissantProd.id,
+        quantity: 1,
+        isRequired: true,
+        displayOrder: 2,
+      }
+    });
+  }
+
+  // Branch product and pricing tiers for combo
+  await prisma.branchProduct.create({
+    data: {
+      productId: comboBaseProduct.id,
+      branchId: mainBranch.id,
+      price: 7.50,
+      stock: 30,
+      status: 'ACTIVE',
+    }
+  });
+  await prisma.branchProduct.create({
+    data: {
+      productId: comboBaseProduct.id,
+      branchId: downtownBranch.id,
+      price: 8.00,
+      stock: 20,
+      status: 'ACTIVE',
+    }
+  });
+
+  await prisma.productAnalytics.create({
+    data: {
+      productId: comboBaseProduct.id,
+      totalSales: 15,
+      revenue: 112.50,
+      profit: 85.50,
+      averagePrepTime: 8,
+    }
+  });
+
+  await prisma.productStatusHistory.create({
+    data: {
+      productId: comboBaseProduct.id,
+      oldStatus: 'DRAFT',
+      newStatus: 'ACTIVE',
+      reason: 'Initial system combo seeding',
+      changedBy: adminUser.displayName || 'Admin User',
+    }
+  });
+
+  // Push combo base product to list so orders seeding can pick it up too
+  productsList.push(comboBaseProduct);
+
+  // Favorite products for admin
+  await prisma.favoriteProduct.create({
+    data: {
+      productId: productMap['Espresso Single'].id,
+      userId: adminUser.id,
+    }
+  });
+  await prisma.favoriteProduct.create({
+    data: {
+      productId: productMap['Chai Latte Grande'].id,
+      userId: adminUser.id,
+    }
+  });
 
   // Seed Tables & Positions & QRCodes
   const tablesList: any[] = [];

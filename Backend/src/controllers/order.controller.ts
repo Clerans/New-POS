@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../config/db.js';
 import * as socketEmitter from '../socket/index.js';
+import { AuthenticatedRequest } from '../middlewares/auth.js';
 
 export class OrderController {
-  createOrder = async (req: Request, res: Response, next: NextFunction) => {
+  createOrder = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const {
         orderType,
@@ -34,7 +35,7 @@ export class OrderController {
       });
 
       let subtotal = 0;
-      const orderItemsData = [];
+      const orderItemsData: any[] = [];
 
       for (const item of items) {
         const product = dbProducts.find((p) => p.id === item.productId);
@@ -190,7 +191,7 @@ export class OrderController {
     }
   };
 
-  getOrders = async (req: Request, res: Response, next: NextFunction) => {
+  getOrders = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const orders = await prisma.order.findMany({
         where: req.user?.branchId ? { branchId: req.user.branchId } : undefined,
@@ -259,7 +260,7 @@ export class OrderController {
     }
   };
 
-  holdOrder = async (req: Request, res: Response, next: NextFunction) => {
+  holdOrder = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { orderType, customerId, tableId, items, notes } = req.body;
 
@@ -327,7 +328,7 @@ export class OrderController {
     }
   };
 
-  getHeldOrders = async (req: Request, res: Response, next: NextFunction) => {
+  getHeldOrders = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const held = await prisma.heldOrder.findMany({
         where: req.user?.id ? { userId: req.user.id } : undefined,
@@ -671,7 +672,7 @@ export class OrderController {
     }
   };
 
-  refundOrder = async (req: Request, res: Response, next: NextFunction) => {
+  refundOrder = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const { orderId, reason, items } = req.body; // items: Array<{ orderItemId: string, quantity: number }>
 
@@ -812,7 +813,7 @@ export class OrderController {
     }
   };
 
-  getOrderHistory = async (req: Request, res: Response, next: NextFunction) => {
+  getOrderHistory = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
       const orders = await prisma.order.findMany({
         where: req.user?.branchId ? { branchId: req.user.branchId } : undefined,
